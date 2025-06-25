@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movie_recommendation_app/models/user_session.dart';
+import 'package:movie_recommendation_app/pages/create_group_page.dart';
 import 'package:movie_recommendation_app/pages/home_page.dart';
 import 'package:movie_recommendation_app/pages/signup_page.dart';
 import 'package:movie_recommendation_app/pages/login_page.dart';
@@ -85,7 +86,7 @@ class MenuDrawer extends StatelessWidget {
             leading: const Icon(Icons.groups_2),
             title: const Text('Create Group'),
             onTap: () {
-              // meow meow meow meow
+              resetAndPush(context, const CreateGroupPage());
             },
           ),
           const Divider(),
@@ -126,7 +127,6 @@ class MenuDrawer extends StatelessWidget {
                 final userSession = context.read<UserSession>();
                 await supabase.auth.signOut();
                 userSession.refresh();
-                
               },
             ),
             const Divider(),
