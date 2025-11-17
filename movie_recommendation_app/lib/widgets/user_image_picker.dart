@@ -49,7 +49,7 @@ class _UserImagePickerState extends State<UserImagePicker> {
             ),
           ),
           icon: const Icon(Icons.image),
-        )
+        ),
       ],
     );
   }

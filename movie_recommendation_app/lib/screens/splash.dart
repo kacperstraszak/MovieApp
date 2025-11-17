@@ -9,6 +9,16 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Movie Recommendation App'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              supabase.auth.signOut();
+            },
+            icon: const Icon(
+              Icons.logout,
+            ),
+          ),
+        ],
       ),
       body: preloader,
     );

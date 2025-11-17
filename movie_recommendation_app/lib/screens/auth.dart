@@ -25,10 +25,31 @@ class _AuthScreenState extends State<AuthScreen> {
   File? _selectedImage;
   var _isAuthenticating = false;
 
+  // URL DO API Z LOSOWYMI AWATARAMI
+  static const String _defaultAvatarUrl =
+      'https://api.dicebear.com/7.x/avataaars/png?seed=default';
+
   void _submit() async {
     final isValid = _form.currentState!.validate();
 
-    if (!isValid || !_isLogin && _selectedImage == null) {
+    if (!isValid) {
+      return;
+    }
+
+    // SPRAWDZENIE POWTÓRZONEGO HASŁA
+    if (!_isLogin && _enteredPassword != _enteredPasswordRepeated) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          content: Text(
+            'Passwords do not match',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+      );
       return;
     }
 
@@ -40,11 +61,13 @@ class _AuthScreenState extends State<AuthScreen> {
       });
 
       if (_isLogin) {
+        // LOGOWANIE
         await supabase.auth.signInWithPassword(
           email: _enteredEmail,
           password: _enteredPassword,
         );
       } else {
+        // REJESTRACJA
         final authResponse = await supabase.auth.signUp(
           email: _enteredEmail,
           password: _enteredPassword,
@@ -55,27 +78,29 @@ class _AuthScreenState extends State<AuthScreen> {
         }
 
         final userId = authResponse.user!.id;
+        String imageUrl = _defaultAvatarUrl;
 
-        // Upload zdjęcia do Supabase Storage
-        final String fileName = '$userId.jpg';
-        final String filePath = 'user_images/$fileName';
+        // WRZUCENIE ZDJĘCIA DO BAZY JEŚLI WYBRANE
+        if (_selectedImage != null) {
+          final String fileName = '$userId.jpg';
+          final String filePath = 'user_images/$fileName';
 
-        await supabase.storage.from('avatars').upload(
-              filePath,
-              _selectedImage!,
-              fileOptions: const FileOptions(
-                upsert: true,
-                contentType: 'image/jpeg',
-              ),
-            );
+          await supabase.storage.from('avatars').upload(
+                filePath,
+                _selectedImage!,
+                fileOptions: const FileOptions(
+                  upsert: true,
+                  contentType: 'image/jpeg',
+                ),
+              );
 
-        // Pobierz publiczny URL zdjęcia
-        final String imageUrl =
-            supabase.storage.from('avatars').getPublicUrl(filePath);
+          imageUrl = supabase.storage.from('avatars').getPublicUrl(filePath);
+        }
 
-        await supabase.from('users').insert({
+        // ZAPIS DANYCH UŻYTKOWNIKA
+        await supabase.from('profiles').insert({
           'id': userId,
-          'username': _enteredUsername,
+          'username': _enteredUsername.trim(),
           'email': _enteredEmail,
           'image_url': imageUrl,
         });
@@ -85,7 +110,13 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.message),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            content: Text(
+              error.message,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
         );
       }
@@ -97,7 +128,13 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Image upload failed: ${error.message}'),
+            backgroundColor: Theme.of(context).colorScheme.onPrimary,
+            content: Text(
+              'Image upload failed: ${error.message}',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
         );
       }
@@ -109,7 +146,13 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occurred: $error'),
+            backgroundColor: Theme.of(context).colorScheme.onPrimary,
+            content: Text(
+              'An error occurred: $error',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
         );
       }
@@ -117,6 +160,18 @@ class _AuthScreenState extends State<AuthScreen> {
         _isAuthenticating = false;
       });
     }
+  }
+
+  void _toggleAuthMode() {
+    setState(() {
+      _isLogin = !_isLogin;
+      _form.currentState?.reset();
+      _selectedImage = null;
+      _enteredEmail = '';
+      _enteredPassword = '';
+      _enteredPasswordRepeated = '';
+      _enteredUsername = '';
+    });
   }
 
   @override
@@ -144,119 +199,152 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Form(
-                        key: _form,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!_isLogin)
-                              UserImagePicker(
-                                onPickImage: (pickedImage) {
-                                  _selectedImage = pickedImage;
-                                },
+                      key: _form,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!_isLogin) ...[
+                            UserImagePicker(
+                              onPickImage: (pickedImage) {
+                                _selectedImage = pickedImage;
+                              },
+                            ),
+                            Text(
+                              'Profile picture is optional',
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          TextFormField(
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Email Address',
+                              fillColor: Theme.of(context).colorScheme.surface,
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            textCapitalization: TextCapitalization.none,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  !value.contains('@')) {
+                                return 'Please enter a valid email address';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredEmail = value!;
+                            },
+                          ),
+                          if (!_isLogin)
                             TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Email Address',
-                                fillColor: Theme.of(context).colorScheme.surface,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                              keyboardType: TextInputType.emailAddress,
-                              autocorrect: false,
-                              textCapitalization: TextCapitalization.none,
+                              decoration: const InputDecoration(
+                                labelText: 'Username',
+                              ),
+                              enableSuggestions: false,
                               validator: (value) {
-                                if (value == null ||
-                                    value.trim().isEmpty ||
-                                    !value.contains('@')) {
-                                  return 'Please enter the valid email address';
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a username';
+                                }
+                                if (value.trim().length < 4) {
+                                  return 'Username must be at least 4 characters';
                                 }
                                 return null;
                               },
                               onSaved: (value) {
-                                _enteredEmail = value!;
+                                _enteredUsername = value!;
                               },
                             ),
-                            if (!_isLogin)
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                    labelText: 'Username'),
-                                enableSuggestions: false,
-                                validator: (value) {
-                                  if (value == null ||
-                                      value.isEmpty ||
-                                      value.trim().length < 4) {
-                                    return 'Please enter at least 4 characters.';
-                                  }
-                                  return null;
-                                },
-                                onSaved: (value) {
-                                  _enteredUsername = value!;
-                                },
-                              ),
+                          TextFormField(
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                            ),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.trim().length < 8) {
+                                return 'Password must be at least 8 characters long';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredPassword = value!;
+                            },
+                            onChanged: (value) {
+                              _enteredPassword = value;
+                            },
+                          ),
+                          if (!_isLogin)
                             TextFormField(
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                               decoration: const InputDecoration(
-                                labelText: 'Password',
+                                labelText: 'Repeat Password',
                               ),
                               obscureText: true,
                               validator: (value) {
-                                if (value == null ||
-                                    value.trim().length < 8 ||
-                                    _enteredPassword !=
-                                        _enteredPasswordRepeated) {
-                                  return 'Password must be at least 8 characters long';
+                                if (value == null || value.isEmpty) {
+                                  return 'Please repeat your password';
                                 }
                                 return null;
                               },
                               onSaved: (value) {
-                                _enteredPassword = value!;
+                                _enteredPasswordRepeated = value!;
+                              },
+                              onChanged: (value) {
+                                _enteredPasswordRepeated = value;
                               },
                             ),
-                            if (!_isLogin)
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: 'Repeat Password',
-                                ),
-                                obscureText: true,
-                                onSaved: (value) {
-                                  _enteredPasswordRepeated = value!;
-                                },
+                          const SizedBox(height: 24),
+                          if (_isAuthenticating)
+                            const CircularProgressIndicator(),
+                          if (!_isAuthenticating)
+                            ElevatedButton(
+                              onPressed: _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                minimumSize: const Size(double.infinity, 45),
                               ),
-                            const SizedBox(height: 12),
-                            if (_isAuthenticating)
-                              const CircularProgressIndicator(),
-                            if (!_isAuthenticating)
-                              ElevatedButton(
-                                onPressed: _submit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context)
+                              child: Text(
+                                _isLogin ? 'Login' : 'Sign Up',
+                                style: TextStyle(
+                                  color: Theme.of(context)
                                       .colorScheme
-                                      .primaryContainer,
-                                ),
-                                child: Text(
-                                  _isLogin ? 'Login' : 'Signup',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
-                                  ),
+                                      .onPrimaryContainer,
                                 ),
                               ),
-                            if (!_isAuthenticating)
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isLogin = !_isLogin;
-                                  });
-                                },
-                                child: Text(
-                                  _isLogin
-                                      ? 'Create an account'
-                                      : 'I already have an account',
-                                ),
+                            ),
+                          if (!_isAuthenticating)
+                            TextButton(
+                              onPressed: _toggleAuthMode,
+                              child: Text(
+                                _isLogin
+                                    ? 'Create an account'
+                                    : 'I already have an account',
                               ),
-                          ],
-                        )),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
