@@ -20,7 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
-  var _enteredPasswordRepeated = '';
+  var _enteredPasswordRepeated = ''; // do walidacji
   var _enteredUsername = '';
   File? _selectedImage;
   var _isAuthenticating = false;
@@ -29,6 +29,23 @@ class _AuthScreenState extends State<AuthScreen> {
   static const String _defaultAvatarUrl =
       'https://api.dicebear.com/7.x/avataaars/png?seed=default';
 
+  // PRYWATNA METODA DO POKAZYWANIA BŁĘDÓW
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _submit() async {
     final isValid = _form.currentState!.validate();
 
@@ -36,24 +53,8 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
-    // SPRAWDZENIE POWTÓRZONEGO HASŁA
-    if (!_isLogin && _enteredPassword != _enteredPasswordRepeated) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          content: Text(
-            'Passwords do not match',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-        ),
-      );
-      return;
-    }
-
     _form.currentState!.save();
+    FocusScope.of(context).unfocus();
 
     try {
       setState(() {
@@ -83,9 +84,9 @@ class _AuthScreenState extends State<AuthScreen> {
         // WRZUCENIE ZDJĘCIA DO BAZY JEŚLI WYBRANE
         if (_selectedImage != null) {
           final String fileName = '$userId.jpg';
-          final String filePath = 'user_images/$fileName';
+          final String filePath = '$kUserImagesPath/$fileName';
 
-          await supabase.storage.from('avatars').upload(
+          await supabase.storage.from(kAvatarsBucket).upload(
                 filePath,
                 _selectedImage!,
                 fileOptions: const FileOptions(
@@ -94,75 +95,38 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               );
 
-          imageUrl = supabase.storage.from('avatars').getPublicUrl(filePath);
+          imageUrl = supabase.storage
+              .from(kAvatarsBucket)
+              .getPublicUrl(filePath); 
         }
 
         // ZAPIS DANYCH UŻYTKOWNIKA
-        await supabase.from('profiles').insert({
-          'id': userId,
-          'username': _enteredUsername.trim(),
-          'email': _enteredEmail,
-          'image_url': imageUrl,
+        await supabase.from(kProfilesTable).insert({
+          kUserIdCol: userId,
+          kUsernameCol: _enteredUsername.trim(),
+          kEmailCol: _enteredEmail,
+          kImageUrlCol: imageUrl,
         });
       }
     } on AuthException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            content: Text(
-              error.message,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ),
-        );
-      }
-      setState(() {
-        _isAuthenticating = false;
-      });
+      _showErrorSnackBar(error.message);
     } on StorageException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.onPrimary,
-            content: Text(
-              'Image upload failed: ${error.message}',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ),
-        );
-      }
-      setState(() {
-        _isAuthenticating = false;
-      });
+      _showErrorSnackBar('Image upload failed: ${error.message}');
     } catch (error) {
+      _showErrorSnackBar('An error occurred: $error');
+    } finally {
+      // BLOK FINALLY
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.onPrimary,
-            content: Text(
-              'An error occurred: $error',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ),
-        );
+        setState(() {
+          _isAuthenticating = false;
+        });
       }
-      setState(() {
-        _isAuthenticating = false;
-      });
     }
   }
 
   void _toggleAuthMode() {
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _isLogin = !_isLogin;
       _form.currentState?.reset();
@@ -300,10 +264,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please repeat your password';
                                 }
+                                if (value != _enteredPassword) {
+                                  return 'Passwords do not match';
+                                }
                                 return null;
-                              },
-                              onSaved: (value) {
-                                _enteredPasswordRepeated = value!;
                               },
                               onChanged: (value) {
                                 _enteredPasswordRepeated = value;
