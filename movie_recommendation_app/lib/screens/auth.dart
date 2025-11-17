@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:movie_recommendation_app/utils/constants.dart';
+import 'package:movie_recommendation_app/utils/storage_service.dart';
 import 'package:movie_recommendation_app/widgets/user_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,20 +17,16 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
+  final _storageService = StorageService();
 
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
-  var _enteredPasswordRepeated = ''; // do walidacji
+  var _enteredPasswordRepeated = '';
   var _enteredUsername = '';
   File? _selectedImage;
   var _isAuthenticating = false;
 
-  // URL DO API Z LOSOWYMI AWATARAMI
-  static const String _defaultAvatarUrl =
-      'https://api.dicebear.com/7.x/avataaars/png?seed=default';
-
-  // PRYWATNA METODA DO POKAZYWANIA BŁĘDÓW
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -79,25 +76,14 @@ class _AuthScreenState extends State<AuthScreen> {
         }
 
         final userId = authResponse.user!.id;
-        String imageUrl = _defaultAvatarUrl;
+        String imageUrl = defaultAvatarUrl;
 
-        // WRZUCENIE ZDJĘCIA DO BAZY JEŚLI WYBRANE
         if (_selectedImage != null) {
-          final String fileName = '$userId.jpg';
-          final String filePath = '$kUserImagesPath/$fileName';
-
-          await supabase.storage.from(kAvatarsBucket).upload(
-                filePath,
-                _selectedImage!,
-                fileOptions: const FileOptions(
-                  upsert: true,
-                  contentType: 'image/jpeg',
-                ),
-              );
-
-          imageUrl = supabase.storage
-              .from(kAvatarsBucket)
-              .getPublicUrl(filePath); 
+          imageUrl = await _storageService.uploadAvatar(
+            imageFile: _selectedImage!,
+            userId: userId,
+            isUpdate: false,
+          );
         }
 
         // ZAPIS DANYCH UŻYTKOWNIKA
@@ -115,7 +101,6 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (error) {
       _showErrorSnackBar('An error occurred: $error');
     } finally {
-      // BLOK FINALLY
       if (mounted) {
         setState(() {
           _isAuthenticating = false;
@@ -126,7 +111,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _toggleAuthMode() {
     FocusScope.of(context).unfocus();
-
     setState(() {
       _isLogin = !_isLogin;
       _form.currentState?.reset();
