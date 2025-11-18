@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/screens/auth.dart';
+import 'package:movie_recommendation_app/screens/home.dart';
 import 'package:movie_recommendation_app/screens/splash.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,9 +9,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
-    url: 'https://rbprhqawjugawkcmryyu.supabase.co',
+    url: 'URL',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJicHJocWF3anVnYXdrY21yeXl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMjA5NzEsImV4cCI6MjA2Mjg5Njk3MX0.xC3TP9g1H77f5WnrXkcXRJOGa4WEAGmFATDPFEwjDBg',
+        'KEY',
   );
   runApp(const ProviderScope(
     child: App(),
@@ -35,7 +36,7 @@ class App extends StatelessWidget {
           final session = snapshot.data?.session;
 
           if (session != null) {
-            return const SplashScreen();
+            return const HomeScreen();
           }
 
           return const AuthScreen();
