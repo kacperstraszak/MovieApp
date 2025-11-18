@@ -92,7 +92,12 @@ class AuthNotifier extends Notifier<AuthState> {
         email: email,
         password: password,
       );
+
       state = state.copyWith(isAuthenticating: false, user: response.user);
+
+      if (response.user != null) {
+        await _loadProfile(response.user!.id);
+      }
     } on AuthException catch (error) {
       state =
           state.copyWith(isAuthenticating: false, errorMessage: error.message);
@@ -142,16 +147,22 @@ class AuthNotifier extends Notifier<AuthState> {
       });
 
       state = state.copyWith(isAuthenticating: false, user: authResponse.user);
+
+      // Załaduj świeżo utworzony profil
+      await _loadProfile(userId);
     } on AuthException catch (error) {
       state =
           state.copyWith(isAuthenticating: false, errorMessage: error.message);
     } on StorageException catch (error) {
       state = state.copyWith(
-          isAuthenticating: false,
-          errorMessage: 'Image upload failed: ${error.message}');
+        isAuthenticating: false,
+        errorMessage: 'Image upload failed: ${error.message}',
+      );
     } catch (error) {
       state = state.copyWith(
-          isAuthenticating: false, errorMessage: 'An error occurred: $error');
+        isAuthenticating: false,
+        errorMessage: 'An error occurred: $error',
+      );
     }
   }
 
