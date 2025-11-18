@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movie_recommendation_app/providers/auth_provider.dart';
+
+class MenuDrawer extends ConsumerWidget {
+  const MenuDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final profile = authState.profile;
+
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.onPrimary,
+                  Theme.of(context).colorScheme.surfaceContainer,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 24),
+                  child: CircleAvatar(
+                    radius: 30,
+                    backgroundImage: profile != null
+                        ? NetworkImage(profile.imageUrl)
+                        : null,
+                    child: profile?.imageUrl == null
+                        ? const CircularProgressIndicator()
+                        : null,
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome${profile != null ? ' ${profile.username}' : '!'}',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        softWrap: false,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'meow meow',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.search),
+            title: const Text('Search'),
+            onTap: () {
+              // meow meow meow meow
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home Page'),
+            onTap: () {
+              //meow meow
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.groups_2),
+            title: const Text('Create Group'),
+            onTap: () {
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.group_add),
+            title: const Text('Join Group'),
+            onTap: () {
+              // meow meow meow meow
+            },
+          ),
+          const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
+              onTap: () {
+                // meow meow meow meow
+              },
+            ),
+            const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              // meow meow meow meow
+            },
+          ),
+          const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () {
+                ref.read(authProvider.notifier).signOut();
+              },
+            ),
+            const Divider(),
+          ],
+      ),
+    );
+  }
+}

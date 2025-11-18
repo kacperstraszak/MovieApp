@@ -20,17 +20,16 @@ const kUserImagesPath = 'user_images';
 
 // Random Avatars
 const String defaultAvatarUrl =
-    'https://api.dicebear.com/7.x/avataaars/png?seed=default';
+    'https://api.dicebear.com/7.x/avataaars/png?seed=';
 
 // Preloader
 const preloader = Center(child: CircularProgressIndicator());
 
 // Theme
 final appTheme = ThemeData(
-  useMaterial3: true,
   colorScheme: ColorScheme.fromSeed(
     brightness: Brightness.dark,
-    seedColor: const Color.fromARGB(255, 15, 57, 108),
+    seedColor: const Color.fromARGB(255, 255, 112, 32),
   ),
   textTheme: GoogleFonts.latoTextTheme(),
 );
