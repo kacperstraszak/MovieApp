@@ -5,20 +5,31 @@ import 'package:movie_recommendation_app/utils/constants.dart';
 class MoviesNotifier extends Notifier<List<Movie>> {
   @override
   List<Movie> build() {
-    loadPlaces();
-    return const [];
+    loadMovies();
+    return [];
+  }
+
+  Future<void> loadMovies() async {
+    try {
+      final data = await supabase
+          .from('movies')
+          .select()
+          .order('release', ascending: false);
+
+      final movies =
+          (data as List).map((json) => Movie.fromJson(json)).toList();
+
+      state = movies;
+    } catch (error) {
+      state = [];
+    }
+  }
+
+  Future<void> refresh() async {
+    await loadMovies();
   }
 }
 
-Future<void> loadPlaces() async {
-  try {
-    final data = await supabase
-        .from('movies')
-        .select()
-        .order('release', ascending: false)
-        .withConverter<List<Movie>>(
-            (data) => data.map(Movie.fromJson).toList());
-  } catch (error) {}
-}
-
-final placesProvider = NotifierProvider<MoviesNotifier, List<Movie>>(MoviesNotifier.new);
+final moviesProvider = NotifierProvider<MoviesNotifier, List<Movie>>(
+  MoviesNotifier.new,
+);
