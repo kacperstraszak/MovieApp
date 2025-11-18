@@ -10,6 +10,56 @@ class MenuDrawer extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
 
+void showLogoutDialog() {
+  final colorScheme = Theme.of(context).colorScheme;
+  
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      actionsAlignment: MainAxisAlignment.center,
+      alignment: Alignment.center,
+      icon: Icon(
+        Icons.logout_rounded,
+        color: colorScheme.error,
+        size: 32,
+      ),
+      title: Text(
+        'Logout',
+        style: TextStyle(
+          color: colorScheme.onSurface,
+        ),
+      ),
+      content: Text(
+        'Are you sure you want to logout?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: colorScheme.surfaceTint,
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+            Navigator.of(context).pop();
+            ref.read(authProvider.notifier).signOut();
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: colorScheme.error,
+            foregroundColor: colorScheme.onError,
+          ),
+          child: const Text('Logout'),
+        ),
+      ],
+    ),
+  );
+}
+
     return Drawer(
       child: ListView(
         children: [
@@ -30,9 +80,8 @@ class MenuDrawer extends ConsumerWidget {
                   padding: const EdgeInsets.only(left: 8, right: 24),
                   child: CircleAvatar(
                     radius: 30,
-                    backgroundImage: profile != null
-                        ? NetworkImage(profile.imageUrl)
-                        : null,
+                    backgroundImage:
+                        profile != null ? NetworkImage(profile.imageUrl) : null,
                     child: profile?.imageUrl == null
                         ? const CircularProgressIndicator()
                         : null,
@@ -85,8 +134,7 @@ class MenuDrawer extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.groups_2),
             title: const Text('Create Group'),
-            onTap: () {
-            },
+            onTap: () {},
           ),
           const Divider(),
           ListTile(
@@ -97,14 +145,14 @@ class MenuDrawer extends ConsumerWidget {
             },
           ),
           const Divider(),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                // meow meow meow meow
-              },
-            ),
-            const Divider(),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Profile'),
+            onTap: () {
+              // meow meow meow meow
+            },
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Settings'),
@@ -113,15 +161,15 @@ class MenuDrawer extends ConsumerWidget {
             },
           ),
           const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                ref.read(authProvider.notifier).signOut();
-              },
-            ),
-            const Divider(),
-          ],
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () {
+              showLogoutDialog();
+            },
+          ),
+          const Divider(),
+        ],
       ),
     );
   }
