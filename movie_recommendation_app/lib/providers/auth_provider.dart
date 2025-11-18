@@ -1,24 +1,30 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movie_recommendation_app/models/user_profile.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:movie_recommendation_app/utils/storage_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Stan providera
 class AuthState {
-  final User? user; // Aktualnie zalogowany użytkownik
-  final bool
-      isAuthenticating; // stan - czy apliakcja przeprowadza teraz autentykacje z supabasem
-  final String? errorMessage;
-
   const AuthState({
     this.user,
+    this.profile,
     this.isAuthenticating = false,
     this.errorMessage,
   });
 
+  final User? user; // auth zalogowanego użytkownika (mail/id)
+  final UserProfile?
+      profile; // reszta elementów profilu użytkownika (imageUrl/username)
+  final bool
+      isAuthenticating; // stan - czy apliakcja przeprowadza teraz autentykacje z supabasem
+  final String? errorMessage;
+
   AuthState copyWith({
     User? user,
+    UserProfile? profile,
     bool? isAuthenticating,
     String? errorMessage,
   }) {
@@ -26,6 +32,7 @@ class AuthState {
       user: user ?? this.user,
       isAuthenticating: isAuthenticating ?? this.isAuthenticating,
       errorMessage: errorMessage, // Jeśli null, to błąd znika
+      profile: profile ?? this.profile,
     );
   }
 }
@@ -36,7 +43,33 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     final currentUser = supabase.auth.currentUser;
+
+    if (currentUser != null) {
+      Future.microtask(() => _loadProfile(currentUser.id));
+    }
+
     return AuthState(user: currentUser);
+  }
+
+  Future<void> _loadProfile(String userId) async {
+    try {
+      final data = await supabase
+          .from(kProfilesTable)
+          .select()
+          .eq(kUserIdCol, userId)
+          .single();
+
+      final profile = UserProfile.fromJson(data);
+      state = state.copyWith(profile: profile);
+    } on PostgrestException catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to load profile: ${e.message}',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Unexpected error loading profile: $e',
+      );
+    }
   }
 
   Future<void> _checkUsernameAvailability(String username) async {
@@ -91,7 +124,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final userId = authResponse.user!.id;
       String imageUrl =
-          'https://api.dicebear.com/7.x/avataaars/png?seed=default'; // losowy avatar
+          '$defaultAvatarUrl${Random().nextInt(10000).toString()}';
 
       if (imageFile != null) {
         imageUrl = await _storageService.uploadAvatar(
