@@ -7,8 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Stan providera
 class AuthState {
   final User? user; // Aktualnie zalogowany użytkownik
-  final bool isAuthenticating; // stan - czy apliakcja przeprowadza teraz autentykacje z supabasem
-  final String? errorMessage; 
+  final bool
+      isAuthenticating; // stan - czy apliakcja przeprowadza teraz autentykacje z supabasem
+  final String? errorMessage;
 
   const AuthState({
     this.user,
@@ -60,10 +61,12 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       state = state.copyWith(isAuthenticating: false, user: response.user);
     } on AuthException catch (error) {
-      state = state.copyWith(isAuthenticating: false, errorMessage: error.message);
+      state =
+          state.copyWith(isAuthenticating: false, errorMessage: error.message);
     } catch (error) {
       state = state.copyWith(
-          isAuthenticating: false, errorMessage: 'An unexpected error occurred');
+          isAuthenticating: false,
+          errorMessage: 'An unexpected error occurred');
     }
   }
 
@@ -87,7 +90,8 @@ class AuthNotifier extends Notifier<AuthState> {
       }
 
       final userId = authResponse.user!.id;
-      String imageUrl = 'https://api.dicebear.com/7.x/avataaars/png?seed=default'; // losowy avatar
+      String imageUrl =
+          'https://api.dicebear.com/7.x/avataaars/png?seed=default'; // losowy avatar
 
       if (imageFile != null) {
         imageUrl = await _storageService.uploadAvatar(
@@ -106,10 +110,12 @@ class AuthNotifier extends Notifier<AuthState> {
 
       state = state.copyWith(isAuthenticating: false, user: authResponse.user);
     } on AuthException catch (error) {
-      state = state.copyWith(isAuthenticating: false, errorMessage: error.message);
+      state =
+          state.copyWith(isAuthenticating: false, errorMessage: error.message);
     } on StorageException catch (error) {
       state = state.copyWith(
-          isAuthenticating: false, errorMessage: 'Image upload failed: ${error.message}');
+          isAuthenticating: false,
+          errorMessage: 'Image upload failed: ${error.message}');
     } catch (error) {
       state = state.copyWith(
           isAuthenticating: false, errorMessage: 'An error occurred: $error');
@@ -122,4 +128,5 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider =
+    NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);

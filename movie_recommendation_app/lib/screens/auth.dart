@@ -52,35 +52,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-void _toggleAuthMode() {
-  FocusScope.of(context).unfocus();
-  setState(() {
-    _isLogin = !_isLogin;
-    _form.currentState?.reset();
-    _selectedImage = null;
-    _enteredEmail = '';
-    _enteredPassword = '';
-    _enteredPasswordRepeated = '';
-    _enteredUsername = '';
-  });
-}
+  void _toggleAuthMode() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isLogin = !_isLogin;
+      _form.currentState?.reset();
+      _selectedImage = null;
+      _enteredEmail = '';
+      _enteredPassword = '';
+      _enteredPasswordRepeated = '';
+      _enteredUsername = '';
+    });
+  }
 
-@override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.errorMessage != null &&
+          next.errorMessage != previous?.errorMessage) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            next.errorMessage!,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+        ));
+      }
+    });
 
-  ref.listen<AuthState>(authProvider, (previous, next) {
-    if (next.errorMessage != null && next.errorMessage != previous?.errorMessage){
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(next.errorMessage!),
-        backgroundColor: Theme.of(context).colorScheme.error,)
-      );
-
-    }
-  });
-
-  final authState = ref.watch(authProvider);
-  final isAuthenticating = authState.isAuthenticating;
+    final authState = ref.watch(authProvider);
+    final isAuthenticating = authState.isAuthenticating;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
@@ -119,13 +123,16 @@ Widget build(BuildContext context) {
                               'Profile picture is optional',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 8),
                           ],
                           TextFormField(
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface),
                             decoration: InputDecoration(
                               labelText: 'Email Address',
                               fillColor: Theme.of(context).colorScheme.surface,
@@ -134,7 +141,9 @@ Widget build(BuildContext context) {
                             autocorrect: false,
                             textCapitalization: TextCapitalization.none,
                             validator: (value) {
-                              if (value == null || value.trim().isEmpty || !value.contains('@')) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  !value.contains('@')) {
                                 return 'Please enter a valid email address';
                               }
                               return null;
@@ -143,10 +152,15 @@ Widget build(BuildContext context) {
                           ),
                           if (!_isLogin)
                             TextFormField(
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                              decoration: const InputDecoration(labelText: 'Username'),
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface),
+                              decoration:
+                                  const InputDecoration(labelText: 'Username'),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty || value.trim().length < 4) {
+                                if (value == null ||
+                                    value.trim().isEmpty ||
+                                    value.trim().length < 4) {
                                   return 'Username must be at least 4 characters';
                                 }
                                 return null;
@@ -154,8 +168,10 @@ Widget build(BuildContext context) {
                               onSaved: (value) => _enteredUsername = value!,
                             ),
                           TextFormField(
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                            decoration: const InputDecoration(labelText: 'Password'),
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface),
+                            decoration:
+                                const InputDecoration(labelText: 'Password'),
                             obscureText: true,
                             validator: (value) {
                               if (value == null || value.trim().length < 8) {
@@ -168,8 +184,11 @@ Widget build(BuildContext context) {
                           ),
                           if (!_isLogin)
                             TextFormField(
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                              decoration: const InputDecoration(labelText: 'Repeat Password'),
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface),
+                              decoration: const InputDecoration(
+                                  labelText: 'Repeat Password'),
                               obscureText: true,
                               validator: (value) {
                                 if (value != _enteredPassword) {
@@ -185,19 +204,26 @@ Widget build(BuildContext context) {
                             ElevatedButton(
                               onPressed: _submit,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                                 minimumSize: const Size(double.infinity, 45),
                               ),
                               child: Text(
                                 _isLogin ? 'Login' : 'Sign Up',
-                                style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer),
                               ),
                             ),
                           if (!isAuthenticating)
                             TextButton(
                               onPressed: _toggleAuthMode,
                               child: Text(
-                                _isLogin ? 'Create an account' : 'I already have an account',
+                                _isLogin
+                                    ? 'Create an account'
+                                    : 'I already have an account',
                               ),
                             ),
                         ],
