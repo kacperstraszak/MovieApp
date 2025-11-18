@@ -1,23 +1,21 @@
 import 'dart:io';
 
-import 'package:movie_recommendation_app/utils/constants.dart';
-import 'package:movie_recommendation_app/utils/storage_service.dart';
+import 'package:movie_recommendation_app/providers/auth_provider.dart';
 import 'package:movie_recommendation_app/widgets/user_image_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AuthScreen extends StatefulWidget {
+class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  State<AuthScreen> createState() {
+  ConsumerState<AuthScreen> createState() {
     return _AuthScreenState();
   }
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _form = GlobalKey<FormState>();
-  final _storageService = StorageService();
 
   var _isLogin = true;
   var _enteredEmail = '';
@@ -25,23 +23,6 @@ class _AuthScreenState extends State<AuthScreen> {
   var _enteredPasswordRepeated = '';
   var _enteredUsername = '';
   File? _selectedImage;
-  var _isAuthenticating = false;
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        content: Text(
-          message,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
 
   void _submit() async {
     final isValid = _form.currentState!.validate();
@@ -53,77 +34,54 @@ class _AuthScreenState extends State<AuthScreen> {
     _form.currentState!.save();
     FocusScope.of(context).unfocus();
 
-    try {
-      setState(() {
-        _isAuthenticating = true;
-      });
+    final authNotifier = ref.read(authProvider.notifier);
 
-      if (_isLogin) {
-        // LOGOWANIE
-        await supabase.auth.signInWithPassword(
+    if (_isLogin) {
+      // LOGOWANIE
+      await authNotifier.signIn(
+        email: _enteredEmail,
+        password: _enteredPassword,
+      );
+    } else {
+      // REJESTRACJA
+      await authNotifier.signUp(
           email: _enteredEmail,
           password: _enteredPassword,
-        );
-      } else {
-        // REJESTRACJA
-        final authResponse = await supabase.auth.signUp(
-          email: _enteredEmail,
-          password: _enteredPassword,
-        );
-
-        if (authResponse.user == null) {
-          throw Exception('Registration failed');
-        }
-
-        final userId = authResponse.user!.id;
-        String imageUrl = defaultAvatarUrl;
-
-        if (_selectedImage != null) {
-          imageUrl = await _storageService.uploadAvatar(
-            imageFile: _selectedImage!,
-            userId: userId,
-            isUpdate: false,
-          );
-        }
-
-        // ZAPIS DANYCH UŻYTKOWNIKA
-        await supabase.from(kProfilesTable).insert({
-          kUserIdCol: userId,
-          kUsernameCol: _enteredUsername.trim(),
-          kEmailCol: _enteredEmail,
-          kImageUrlCol: imageUrl,
-        });
-      }
-    } on AuthException catch (error) {
-      _showErrorSnackBar(error.message);
-    } on StorageException catch (error) {
-      _showErrorSnackBar('Image upload failed: ${error.message}');
-    } catch (error) {
-      _showErrorSnackBar('An error occurred: $error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAuthenticating = false;
-        });
-      }
+          username: _enteredUsername,
+          imageFile: _selectedImage);
     }
   }
 
-  void _toggleAuthMode() {
-    FocusScope.of(context).unfocus();
-    setState(() {
-      _isLogin = !_isLogin;
-      _form.currentState?.reset();
-      _selectedImage = null;
-      _enteredEmail = '';
-      _enteredPassword = '';
-      _enteredPasswordRepeated = '';
-      _enteredUsername = '';
-    });
-  }
+void _toggleAuthMode() {
+  FocusScope.of(context).unfocus();
+  setState(() {
+    _isLogin = !_isLogin;
+    _form.currentState?.reset();
+    _selectedImage = null;
+    _enteredEmail = '';
+    _enteredPassword = '';
+    _enteredPasswordRepeated = '';
+    _enteredUsername = '';
+  });
+}
 
-  @override
-  Widget build(BuildContext context) {
+@override
+Widget build(BuildContext context) {
+
+  ref.listen<AuthState>(authProvider, (previous, next) {
+    if (next.errorMessage != null && next.errorMessage != previous?.errorMessage){
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(next.errorMessage!),
+        backgroundColor: Theme.of(context).colorScheme.error,)
+      );
+
+    }
+  });
+
+  final authState = ref.watch(authProvider);
+  final isAuthenticating = authState.isAuthenticating;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       body: Center(
@@ -159,20 +117,15 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                             Text(
                               'Profile picture is optional',
-                              textAlign: TextAlign.start,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 8),
                           ],
                           TextFormField(
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             decoration: InputDecoration(
                               labelText: 'Email Address',
                               fillColor: Theme.of(context).colorScheme.surface,
@@ -181,46 +134,28 @@ class _AuthScreenState extends State<AuthScreen> {
                             autocorrect: false,
                             textCapitalization: TextCapitalization.none,
                             validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty ||
-                                  !value.contains('@')) {
+                              if (value == null || value.trim().isEmpty || !value.contains('@')) {
                                 return 'Please enter a valid email address';
                               }
                               return null;
                             },
-                            onSaved: (value) {
-                              _enteredEmail = value!;
-                            },
+                            onSaved: (value) => _enteredEmail = value!,
                           ),
                           if (!_isLogin)
                             TextFormField(
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Username',
-                              ),
-                              enableSuggestions: false,
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                              decoration: const InputDecoration(labelText: 'Username'),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a username';
-                                }
-                                if (value.trim().length < 4) {
+                                if (value == null || value.trim().isEmpty || value.trim().length < 4) {
                                   return 'Username must be at least 4 characters';
                                 }
                                 return null;
                               },
-                              onSaved: (value) {
-                                _enteredUsername = value!;
-                              },
+                              onSaved: (value) => _enteredUsername = value!,
                             ),
                           TextFormField(
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'Password',
-                            ),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                            decoration: const InputDecoration(labelText: 'Password'),
                             obscureText: true,
                             validator: (value) {
                               if (value == null || value.trim().length < 8) {
@@ -228,63 +163,41 @@ class _AuthScreenState extends State<AuthScreen> {
                               }
                               return null;
                             },
-                            onSaved: (value) {
-                              _enteredPassword = value!;
-                            },
-                            onChanged: (value) {
-                              _enteredPassword = value;
-                            },
+                            onChanged: (value) => _enteredPassword = value,
+                            onSaved: (value) => _enteredPassword = value!,
                           ),
                           if (!_isLogin)
                             TextFormField(
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Repeat Password',
-                              ),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                              decoration: const InputDecoration(labelText: 'Repeat Password'),
                               obscureText: true,
                               validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please repeat your password';
-                                }
                                 if (value != _enteredPassword) {
                                   return 'Passwords do not match';
                                 }
                                 return null;
                               },
-                              onChanged: (value) {
-                                _enteredPasswordRepeated = value;
-                              },
                             ),
                           const SizedBox(height: 24),
-                          if (_isAuthenticating)
+                          if (isAuthenticating)
                             const CircularProgressIndicator(),
-                          if (!_isAuthenticating)
+                          if (!isAuthenticating)
                             ElevatedButton(
                               onPressed: _submit,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                                 minimumSize: const Size(double.infinity, 45),
                               ),
                               child: Text(
                                 _isLogin ? 'Login' : 'Sign Up',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onPrimaryContainer,
-                                ),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
                               ),
                             ),
-                          if (!_isAuthenticating)
+                          if (!isAuthenticating)
                             TextButton(
                               onPressed: _toggleAuthMode,
                               child: Text(
-                                _isLogin
-                                    ? 'Create an account'
-                                    : 'I already have an account',
+                                _isLogin ? 'Create an account' : 'I already have an account',
                               ),
                             ),
                         ],
