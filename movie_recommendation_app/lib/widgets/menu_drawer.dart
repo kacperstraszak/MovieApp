@@ -10,55 +10,55 @@ class MenuDrawer extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
 
-void showLogoutDialog() {
-  final colorScheme = Theme.of(context).colorScheme;
-  
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      actionsAlignment: MainAxisAlignment.center,
-      alignment: Alignment.center,
-      icon: Icon(
-        Icons.logout_rounded,
-        color: colorScheme.error,
-        size: 32,
-      ),
-      title: Text(
-        'Logout',
-        style: TextStyle(
-          color: colorScheme.onSurface,
-        ),
-      ),
-      content: Text(
-        'Are you sure you want to logout?',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-      backgroundColor: colorScheme.surface,
-      surfaceTintColor: colorScheme.surfaceTint,
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.of(ctx).pop();
-            Navigator.of(context).pop();
-            ref.read(authProvider.notifier).signOut();
-          },
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.error,
-            foregroundColor: colorScheme.onError,
+    void showLogoutDialog() {
+      final colorScheme = Theme.of(context).colorScheme;
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          actionsAlignment: MainAxisAlignment.center,
+          alignment: Alignment.center,
+          icon: Icon(
+            Icons.logout_rounded,
+            color: colorScheme.error,
+            size: 32,
           ),
-          child: const Text('Logout'),
+          title: Text(
+            'Logout',
+            style: TextStyle(
+              color: colorScheme.onSurface,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to logout?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          backgroundColor: colorScheme.surface,
+          surfaceTintColor: colorScheme.surfaceTint,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+                ref.read(authProvider.notifier).signOut();
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
-}
+      );
+    }
 
     return Drawer(
       child: ListView(
@@ -79,7 +79,7 @@ void showLogoutDialog() {
                 Padding(
                   padding: const EdgeInsets.only(left: 8, right: 24),
                   child: CircleAvatar(
-                    radius: 30,
+                    radius: 36,
                     backgroundImage:
                         profile != null ? NetworkImage(profile.imageUrl) : null,
                     child: profile?.imageUrl == null
@@ -93,19 +93,27 @@ void showLogoutDialog() {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome${profile != null ? ' ${profile.username}' : '!'}',
+                        'Welcome back!',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        profile !=null ? profile.username : '',
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                         softWrap: false,
                         style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         'meow meow',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
@@ -162,8 +170,16 @@ void showLogoutDialog() {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
+            leading: Icon(
+              Icons.logout,
+              color: Colors.red[300],
+            ),
+            title: Text(
+              'Logout',
+              style: TextStyle(
+                color: Colors.red[300],
+              ),
+            ),
             onTap: () {
               showLogoutDialog();
             },
