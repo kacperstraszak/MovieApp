@@ -7,18 +7,9 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: AppBar(
         title: const Text('Movie Recommendation App'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              supabase.auth.signOut();
-            },
-            icon: const Icon(
-              Icons.logout,
-            ),
-          ),
-        ],
       ),
       body: preloader,
     );
