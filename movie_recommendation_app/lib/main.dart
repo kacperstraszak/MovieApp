@@ -4,14 +4,14 @@ import 'package:movie_recommendation_app/screens/auth.dart';
 import 'package:movie_recommendation_app/screens/home.dart';
 import 'package:movie_recommendation_app/screens/splash.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
+import 'package:movie_recommendation_app/utils/passwords.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
-    url: 'URL',
-    anonKey:
-        'KEY',
+    url: kSupabaseUrl,
+    anonKey: kAnonKey,
   );
   runApp(const ProviderScope(
     child: App(),
