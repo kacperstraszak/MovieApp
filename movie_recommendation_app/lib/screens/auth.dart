@@ -37,13 +37,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final authNotifier = ref.read(authProvider.notifier);
 
     if (_isLogin) {
-      // LOGOWANIE
       await authNotifier.signIn(
         email: _enteredEmail,
         password: _enteredPassword,
       );
     } else {
-      // REJESTRACJA
       await authNotifier.signUp(
         email: _enteredEmail,
         password: _enteredPassword,

@@ -1,4 +1,3 @@
-// pages/join_group_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/screens/group_lobby.dart';
