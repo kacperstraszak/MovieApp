@@ -146,7 +146,7 @@ class GroupNotifier extends Notifier<GroupState> {
       final membersData = await supabase.from('group_members').select('''
             user_id,
             joined_at,
-            profiles!inner(username, imageurl, email)
+            profiles!inner(username, image_url, email)
           ''').eq('group_id', groupId);
 
       final members = (membersData as List).map((data) {
