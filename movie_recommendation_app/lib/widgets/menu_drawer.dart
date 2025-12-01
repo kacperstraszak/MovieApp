@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/providers/auth_provider.dart';
+import 'package:movie_recommendation_app/providers/group_provider.dart';
+import 'package:movie_recommendation_app/screens/group_lobby.dart';
+import 'package:movie_recommendation_app/screens/join_group.dart';
 
 class MenuDrawer extends ConsumerWidget {
   const MenuDrawer({super.key});
@@ -100,7 +103,7 @@ class MenuDrawer extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        profile !=null ? profile.username : '',
+                        profile != null ? profile.username : '',
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                         softWrap: false,
@@ -135,23 +138,35 @@ class MenuDrawer extends ConsumerWidget {
             leading: const Icon(Icons.home),
             title: const Text('Home Page'),
             onTap: () {
-              //meow meow
+              Navigator.of(context).pop();
             },
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.groups_2),
             title: const Text('Create Group'),
-            onTap: () {},
+            onTap: () async {
+              var groupId =
+                  await ref.read(groupProvider.notifier).createGroup();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => GroupLobbyScreen(
+                    isAdmin: true,
+                    groupId: groupId.toString(),
+                  ),
+                ),
+              );
+            },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.group_add),
-            title: const Text('Join Group'),
-            onTap: () {
-              // meow meow meow meow
-            },
-          ),
+              leading: const Icon(Icons.group_add),
+              title: const Text('Join Group'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (ctx) => const JoinGroupScreen()),
+                );
+              }),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.person),
