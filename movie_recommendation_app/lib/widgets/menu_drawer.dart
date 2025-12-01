@@ -10,7 +10,7 @@ class MenuDrawer extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
 
-    void showLogoutDialog() {
+    void _showLogoutDialog() {
       final colorScheme = Theme.of(context).colorScheme;
 
       showDialog(
@@ -181,7 +181,7 @@ class MenuDrawer extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              showLogoutDialog();
+              _showLogoutDialog();
             },
           ),
           const Divider(),
