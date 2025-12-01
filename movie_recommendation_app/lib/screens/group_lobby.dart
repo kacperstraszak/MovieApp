@@ -18,32 +18,36 @@ class GroupLobbyScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
-  
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
   }
 
+  void _showSnackbar(String text, Color color) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _copyGroupCode(BuildContext context, String code) {
     Clipboard.setData(ClipboardData(text: code)).then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Group code copied to clipboard!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
+      _showSnackbar(
+        'Group code copied to clipboard!',
+        Colors.green,
       );
     });
   }
 
   void _startRecommendationProcess(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting recommendation process...'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    _showSnackbar(
+      'Starting recommendation process...',
+      Colors.grey.shade300,
     );
   }
 
@@ -51,18 +55,37 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave Group'),
-        content: Text(widget.isAdmin
-            ? 'As admin, leaving will close the group for all members. Continue?'
-            : 'Are you sure you want to leave this group?'),
+        backgroundColor: Theme.of(context).colorScheme.surfaceDim,
+        title: Text(
+          'Leave Group',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        content: Text(
+          widget.isAdmin
+              ? 'As admin, leaving will close the group for all members. Continue?'
+              : 'Are you sure you want to leave this group?',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
-          TextButton(
+          FilledButton.tonal(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onPrimary,
+              foregroundColor: Theme.of(context).colorScheme.primary,
+            ),
             child: const Text('Leave'),
           ),
         ],
@@ -70,7 +93,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
     );
 
     if (confirmed == true && mounted) {
-      Navigator.of(context).pop(); 
+      Navigator.of(context).pop();
       ref.read(groupProvider.notifier).leaveGroup();
     }
   }
@@ -78,9 +101,11 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(groupProvider, (previous, next) {
-      if (next.errorMessage != null && next.errorMessage!.contains('closed by admin')) {
+      if (next.errorMessage != null &&
+          next.errorMessage!.contains('closed by admin')) {
         if (mounted && ModalRoute.of(context)?.isCurrent == true) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+          _showSnackbar(
+              next.errorMessage!, Theme.of(context).colorScheme.error);
           Navigator.of(context).pop();
         }
       }
@@ -93,12 +118,9 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
 
     if (errorMessage != null && !errorMessage.contains('closed by admin')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        _showSnackbar(
+          errorMessage,
+          Theme.of(context).colorScheme.error,
         );
       });
     }
@@ -161,8 +183,14 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                    Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.5),
+                    Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.25),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -189,7 +217,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'You are the Group Admin',
+                            'You are the Group Owner',
                             style: TextStyle(
                               color: Colors.amber.shade900,
                               fontSize: 16,
@@ -214,8 +242,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: Colors.grey.shade300, width: 2),
+                      border: Border.all(color: Colors.grey.shade300, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
@@ -241,12 +268,11 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                         ),
                         const SizedBox(width: 12),
                         IconButton(
-                          onPressed: () =>
-                              _copyGroupCode(context, group.code),
+                          onPressed: () => _copyGroupCode(context, group.code),
                           icon: const Icon(Icons.copy),
                           style: IconButton.styleFrom(
                             backgroundColor:
-                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.onSecondary,
                             foregroundColor: Colors.white,
                           ),
                           tooltip: 'Copy code',
@@ -279,7 +305,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
+                            color: Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -349,7 +375,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                                                 BorderRadius.circular(8),
                                           ),
                                           child: Text(
-                                            'Admin',
+                                            'Owner',
                                             style: TextStyle(
                                               color: Colors.blue.shade700,
                                               fontSize: 12,
@@ -380,7 +406,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.surface,
                       blurRadius: 10,
                       offset: const Offset(0, -4),
                     ),
@@ -415,6 +441,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                   ),
                 ),
               ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
