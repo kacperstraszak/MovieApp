@@ -58,6 +58,7 @@ class GroupNotifier extends Notifier<GroupState> {
           .insert({
             'code': groupCode,
             'admin_id': user.id,
+            'status': 'lobby',
           })
           .select()
           .single();
@@ -174,11 +175,61 @@ class GroupNotifier extends Notifier<GroupState> {
                 errorMessage: 'The group has been closed by admin.');
           },
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'groups',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: groupId,
+          ),
+          callback: (payload) {
+            final newData = payload.newRecord;
+            final updatedGroup = Group.fromJson(newData);
+            state = state.copyWith(currentGroup: updatedGroup);
+          },
+        )
+        .onBroadcast(
+          event: 'recommendation_started',
+          callback: (payload) {
+            if (state.currentGroup != null) {
+              final updatedGroup = Group(
+                id: state.currentGroup!.id,
+                code: state.currentGroup!.code,
+                adminId: state.currentGroup!.adminId,
+                isActive: state.currentGroup!.isActive,
+                status: 'recommendation_started',
+              );
+              state = state.copyWith(currentGroup: updatedGroup);
+            }
+          },
+        )
         .subscribe((status, error) async {
           if (status == RealtimeSubscribeStatus.subscribed) {
             await _groupChannel!.track(myMemberInfo.toPresencePayload());
           }
         });
+  }
+
+  Future<void> startRecommendationProcess() async {
+    final group = state.currentGroup;
+    if (group == null) return;
+
+    try {
+      await supabase
+          .from('groups')
+          .update({'status': 'recommendation_started'}).eq('id', group.id);
+
+      await _groupChannel?.sendBroadcastMessage(
+        event: 'recommendation_started',
+        payload: {},
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to start recommendation: $e',
+      );
+    }
   }
 
   Future<void> leaveGroup() async {

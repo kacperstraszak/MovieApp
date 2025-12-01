@@ -44,11 +44,10 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
     });
   }
 
-  void _startRecommendationProcess(BuildContext context) {
-    _showSnackbar(
-      'Starting recommendation process...',
-      Colors.grey.shade300,
-    );
+  Future<void> _startRecommendationProcess(BuildContext context) async {
+    setState(() async {
+      await ref.read(groupProvider.notifier).startRecommendationProcess();
+    });
   }
 
   Future<void> _handleExit() async {
@@ -107,6 +106,17 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
           _showSnackbar(
               next.errorMessage!, Theme.of(context).colorScheme.error);
           Navigator.of(context).pop();
+        }
+      }
+
+      if (previous?.currentGroup?.status != next.currentGroup?.status &&
+          next.currentGroup?.status == 'recommendation_started') {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+          _showSnackbar(
+            'Starting recommendation process...',
+            Colors.grey.shade300,
+          );
+          // TODO: NAWIGATOR DO NOWEGO EKRANU
         }
       }
     });
@@ -217,7 +227,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'You are the Group Owner',
+                            'You are the Group Admin',
                             style: TextStyle(
                               color: Colors.amber.shade900,
                               fontSize: 16,
@@ -375,7 +385,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                                                 BorderRadius.circular(8),
                                           ),
                                           child: Text(
-                                            'Owner',
+                                            'Admin',
                                             style: TextStyle(
                                               color: Colors.blue.shade700,
                                               fontSize: 12,

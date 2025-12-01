@@ -2,15 +2,15 @@ class Group {
   final String id;
   final String code;
   final String adminId;
-  final DateTime createdAt;
   final bool isActive;
+  final String status;
 
   Group({
     required this.id,
     required this.code,
     required this.adminId,
-    required this.createdAt,
     required this.isActive,
+    this.status = 'lobby',
   });
 
   factory Group.fromJson(Map<String, dynamic> json) {
@@ -18,8 +18,8 @@ class Group {
       id: json['id'] as String,
       code: json['code'] as String,
       adminId: json['admin_id'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
       isActive: json['is_active'] as bool,
+      status: json['status'] ?? 'lobby',
     );
   }
 
@@ -28,8 +28,8 @@ class Group {
       'id': id,
       'code': code,
       'admin_id': adminId,
-      'created_at': createdAt.toIso8601String(),
       'is_active': isActive,
+      'lobby': status,
     };
   }
 }
