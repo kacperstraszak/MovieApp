@@ -17,26 +17,11 @@ class GroupLobbyScreen extends ConsumerStatefulWidget {
   ConsumerState<GroupLobbyScreen> createState() => _GroupLobbyScreenState();
 }
 
-class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
-    with WidgetsBindingObserver {
+class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
+  
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      ref.read(groupProvider.notifier).leaveGroup();
-    }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   void _copyGroupCode(BuildContext context, String code) {
@@ -53,7 +38,6 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
   }
 
   void _startRecommendationProcess(BuildContext context) {
-    // TODO: Implementacja rozpoczęcia procesu rekomendacji
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Starting recommendation process...'),
@@ -86,22 +70,28 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
     );
 
     if (confirmed == true && mounted) {
-      await ref.read(groupProvider.notifier).leaveGroup();
-      
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      Navigator.of(context).pop(); 
+      ref.read(groupProvider.notifier).leaveGroup();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(groupProvider, (previous, next) {
+      if (next.errorMessage != null && next.errorMessage!.contains('closed by admin')) {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+          Navigator.of(context).pop();
+        }
+      }
+    });
+
     final groupState = ref.watch(groupProvider);
     final group = groupState.currentGroup;
     final members = groupState.members;
     final errorMessage = groupState.errorMessage;
 
-    if (errorMessage != null) {
+    if (errorMessage != null && !errorMessage.contains('closed by admin')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -118,12 +108,10 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
         appBar: AppBar(
           title: const Text('Group Lobby'),
           centerTitle: true,
-          automaticallyImplyLeading: false, 
+          automaticallyImplyLeading: false,
           leading: IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         body: const Center(
@@ -174,10 +162,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                    Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.25),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -309,7 +294,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
                                 const CircularProgressIndicator(),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Loading members...',
+                                  'Waiting for members...',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey.shade600,
@@ -375,9 +360,10 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen>
                                       ],
                                     ],
                                   ),
-                                  trailing: Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green.shade400,
+                                  trailing: const Icon(
+                                    Icons.circle,
+                                    color: Colors.green,
+                                    size: 14,
                                   ),
                                 ),
                               );

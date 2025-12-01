@@ -34,12 +34,12 @@ class GroupState {
 }
 
 class GroupNotifier extends Notifier<GroupState> {
-  RealtimeChannel? _membersChannel;
+  RealtimeChannel? _groupChannel;
 
   @override
   GroupState build() {
     ref.onDispose(() {
-      _membersChannel?.unsubscribe();
+      _leaveChannel();
     });
     return const GroupState();
   }
@@ -48,8 +48,8 @@ class GroupNotifier extends Notifier<GroupState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) throw Exception('User not authenticated');
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
 
       final groupCode = getRandomString(20);
 
@@ -57,26 +57,19 @@ class GroupNotifier extends Notifier<GroupState> {
           .from('groups')
           .insert({
             'code': groupCode,
-            'admin_id': userId,
+            'admin_id': user.id,
           })
           .select()
           .single();
 
       final group = Group.fromJson(groupData);
 
-      await supabase.from('group_members').insert({
-        'group_id': group.id,
-        'user_id': userId,
-      });
-
       state = state.copyWith(
         currentGroup: group,
         isLoading: false,
       );
 
-      _subscribeToMembers(group.id, group.adminId);
-
-      await _loadMembers(group.id, group.adminId);
+      await _joinGroupChannel(group.id, user.id, isAdmin: true);
 
       return group.id;
     } catch (e) {
@@ -92,8 +85,8 @@ class GroupNotifier extends Notifier<GroupState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) throw Exception('User not authenticated');
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
 
       final groupData = await supabase
           .from('groups')
@@ -108,28 +101,12 @@ class GroupNotifier extends Notifier<GroupState> {
 
       final group = Group.fromJson(groupData);
 
-      final existingMember = await supabase
-          .from('group_members')
-          .select()
-          .eq('group_id', group.id)
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (existingMember == null) {
-        await supabase.from('group_members').insert({
-          'group_id': group.id,
-          'user_id': userId,
-        });
-      }
-
       state = state.copyWith(
         currentGroup: group,
         isLoading: false,
       );
 
-      _subscribeToMembers(group.id, group.adminId);
-
-      await _loadMembers(group.id, group.adminId);
+      await _joinGroupChannel(group.id, user.id, isAdmin: false);
 
       return group.id;
     } catch (e) {
@@ -141,52 +118,67 @@ class GroupNotifier extends Notifier<GroupState> {
     }
   }
 
-  Future<void> _loadMembers(String groupId, String adminId) async {
-    try {
-      final membersData = await supabase.from('group_members').select('''
-            user_id,
-            joined_at,
-            profiles!inner(username, image_url, email)
-          ''').eq('group_id', groupId);
+  Future<void> _joinGroupChannel(String groupId, String userId,
+      {required bool isAdmin}) async {
+    final profile = await supabase
+        .from(kProfilesTable)
+        .select()
+        .eq(kUserIdCol, userId)
+        .single();
 
-      final members = (membersData as List).map((data) {
-        return GroupMember.fromJson(data, adminId);
-      }).toList();
+    final username = profile['username'];
+    final imageUrl = profile['image_url'];
 
-      members.sort((a, b) {
-        if (a.isAdmin && !b.isAdmin) return -1;
-        if (!a.isAdmin && b.isAdmin) return 1;
-        return (a.joinedAt ?? DateTime.now())
-            .compareTo(b.joinedAt ?? DateTime.now());
-      });
+    final myMemberInfo = GroupMember(
+      userId: userId,
+      username: username,
+      imageUrl: imageUrl,
+      isAdmin: isAdmin,
+    );
 
-      state = state.copyWith(members: members);
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to load members: $e',
-      );
-    }
-  }
+    _groupChannel = supabase.channel('room_$groupId');
 
-  void _subscribeToMembers(String groupId, String adminId) {
-    _membersChannel?.unsubscribe();
+    _groupChannel!
+        .onPresenceSync((_) {
+          final presenceState = _groupChannel!.presenceState();
 
-    _membersChannel = supabase
-        .channel('group_members_$groupId')
+          final List<GroupMember> activeMembers = [];
+
+          for (final singlePresence in presenceState) {
+            for (final presence in singlePresence.presences) {
+              activeMembers.add(GroupMember.fromPresence(presence.payload));
+            }
+          }
+
+          activeMembers.sort((a, b) {
+            if (a.isAdmin && !b.isAdmin) return -1;
+            if (!a.isAdmin && b.isAdmin) return 1;
+            return (a.joinedAt ?? DateTime.now())
+                .compareTo(b.joinedAt ?? DateTime.now());
+          });
+
+          state = state.copyWith(members: activeMembers);
+        })
         .onPostgresChanges(
-          event: PostgresChangeEvent.all,
+          event: PostgresChangeEvent.delete,
           schema: 'public',
-          table: 'group_members',
+          table: 'groups',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
-            column: 'group_id',
+            column: 'id',
             value: groupId,
           ),
           callback: (payload) {
-            _loadMembers(groupId, adminId);
+            _leaveChannel();
+            state = const GroupState(
+                errorMessage: 'The group has been closed by admin.');
           },
         )
-        .subscribe();
+        .subscribe((status, error) async {
+          if (status == RealtimeSubscribeStatus.subscribed) {
+            await _groupChannel!.track(myMemberInfo.toPresencePayload());
+          }
+        });
   }
 
   Future<void> leaveGroup() async {
@@ -197,23 +189,24 @@ class GroupNotifier extends Notifier<GroupState> {
 
     try {
       if (group.adminId == userId) {
-        await supabase
-            .from('groups')
-            .update({'is_active': false}).eq('id', group.id);
+        await supabase.from('groups').delete().eq('id', group.id);
       }
 
-      await supabase
-          .from('group_members')
-          .delete()
-          .eq('group_id', group.id)
-          .eq('user_id', userId);
+      await _leaveChannel();
 
-      _membersChannel?.unsubscribe();
       state = const GroupState();
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to leave group: $e',
       );
+    }
+  }
+
+  Future<void> _leaveChannel() async {
+    if (_groupChannel != null) {
+      await _groupChannel!.untrack();
+      await supabase.removeChannel(_groupChannel!);
+      _groupChannel = null;
     }
   }
 
