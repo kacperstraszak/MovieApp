@@ -5,7 +5,6 @@ import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StorageService {
-  final _supabase = Supabase.instance.client;
 
   Future<String> uploadAvatar({
     required File imageFile,
@@ -19,7 +18,7 @@ class StorageService {
 
       final Uint8List bytes = await imageFile.readAsBytes();
 
-      await _supabase.storage.from(kAvatarsBucket).uploadBinary(
+      await supabase.storage.from(kAvatarsBucket).uploadBinary(
             filePath,
             bytes,
             fileOptions: FileOptions(
@@ -28,7 +27,7 @@ class StorageService {
           );
 
       final String publicUrl =
-          _supabase.storage.from(kAvatarsBucket).getPublicUrl(filePath);
+          supabase.storage.from(kAvatarsBucket).getPublicUrl(filePath);
 
       return publicUrl;
     } on StorageException {

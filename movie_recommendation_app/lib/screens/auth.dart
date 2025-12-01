@@ -45,10 +45,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } else {
       // REJESTRACJA
       await authNotifier.signUp(
-          email: _enteredEmail,
-          password: _enteredPassword,
-          username: _enteredUsername,
-          imageFile: _selectedImage);
+        email: _enteredEmail,
+        password: _enteredPassword,
+        username: _enteredUsername,
+        imageFile: _selectedImage,
+      );
     }
   }
 
@@ -75,10 +76,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           content: Text(
             next.errorMessage!,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme.of(context).colorScheme.onErrorContainer,
             ),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surface,
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          behavior: SnackBarBehavior.floating,
         ));
       }
     });
@@ -119,6 +121,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 _selectedImage = pickedImage;
                               },
                             ),
+                            const SizedBox(height: 8),
                             Text(
                               'Profile picture is optional',
                               style: TextStyle(
@@ -128,14 +131,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     .onSurfaceVariant,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 16),
                           ],
                           TextFormField(
                             style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface),
-                            decoration: InputDecoration(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: const InputDecoration(
                               labelText: 'Email Address',
-                              fillColor: Theme.of(context).colorScheme.surface,
+                              prefixIcon: Icon(Icons.email_outlined),
+                              border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
@@ -150,13 +155,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             },
                             onSaved: (value) => _enteredEmail = value!,
                           ),
+                          if (!_isLogin) const SizedBox(height: 16),
                           if (!_isLogin)
                             TextFormField(
                               style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface),
-                              decoration:
-                                  const InputDecoration(labelText: 'Username'),
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Username',
+                                prefixIcon: Icon(Icons.person_outline),
+                                border: OutlineInputBorder(),
+                              ),
                               validator: (value) {
                                 if (value == null ||
                                     value.trim().isEmpty ||
@@ -167,11 +176,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               },
                               onSaved: (value) => _enteredUsername = value!,
                             ),
+                          const SizedBox(height: 16),
                           TextFormField(
                             style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface),
-                            decoration:
-                                const InputDecoration(labelText: 'Password'),
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              border: OutlineInputBorder(),
+                            ),
                             obscureText: true,
                             validator: (value) {
                               if (value == null || value.trim().length < 8) {
@@ -182,13 +196,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             onChanged: (value) => _enteredPassword = value,
                             onSaved: (value) => _enteredPassword = value!,
                           ),
+                          if (!_isLogin) const SizedBox(height: 16),
                           if (!_isLogin)
                             TextFormField(
                               style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface),
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                               decoration: const InputDecoration(
-                                  labelText: 'Repeat Password'),
+                                labelText: 'Repeat Password',
+                                prefixIcon: Icon(Icons.lock_outline),
+                                border: OutlineInputBorder(),
+                              ),
                               obscureText: true,
                               validator: (value) {
                                 if (value != _enteredPassword) {
@@ -201,20 +219,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           if (isAuthenticating)
                             const CircularProgressIndicator(),
                           if (!isAuthenticating)
-                            ElevatedButton(
+                            FilledButton(
                               onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                minimumSize: const Size(double.infinity, 45),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 50),
                               ),
                               child: Text(
                                 _isLogin ? 'Login' : 'Sign Up',
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           if (!isAuthenticating)

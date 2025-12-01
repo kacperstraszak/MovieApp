@@ -148,7 +148,6 @@ class AuthNotifier extends Notifier<AuthState> {
 
       state = state.copyWith(isAuthenticating: false, user: authResponse.user);
 
-      // Załaduj świeżo utworzony profil
       await _loadProfile(userId);
     } on AuthException catch (error) {
       state =
