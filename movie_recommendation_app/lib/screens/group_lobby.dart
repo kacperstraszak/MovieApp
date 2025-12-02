@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/providers/group_provider.dart';
-import 'package:movie_recommendation_app/screens/splash.dart';
+import 'package:movie_recommendation_app/screens/preferences.dart';
 
 class GroupLobbyScreen extends ConsumerStatefulWidget {
   final bool isAdmin;
@@ -116,7 +116,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
             if (mounted) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (ctx) => const SplashScreen(),
+                  builder: (ctx) => const PreferencesScreen(),
                 ),
               );
             }
@@ -427,7 +427,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: members.length >= 2
+                  onPressed: members.length >= 1 //TODO: ZMIENIĆ TO POTEM SPOWROTEM NA 2
                       ? () => _startRecommendationProcess(context)
                       : null,
                   style: ElevatedButton.styleFrom(
