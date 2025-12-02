@@ -186,22 +186,18 @@ class GroupNotifier extends Notifier<GroupState> {
           ),
           callback: (payload) {
             final newData = payload.newRecord;
-            final updatedGroup = Group.fromJson(newData);
-            state = state.copyWith(currentGroup: updatedGroup);
-          },
-        )
-        .onBroadcast(
-          event: 'recommendation_started',
-          callback: (payload) {
-            if (state.currentGroup != null) {
-              final updatedGroup = Group(
-                id: state.currentGroup!.id,
-                code: state.currentGroup!.code,
-                adminId: state.currentGroup!.adminId,
-                isActive: state.currentGroup!.isActive,
-                status: 'recommendation_started',
+            if (newData != null) {
+              final updatedGroup = Group.fromJson(newData);
+              
+              final newGroup = Group(
+                id: updatedGroup.id,
+                code: updatedGroup.code,
+                adminId: updatedGroup.adminId,
+                isActive: updatedGroup.isActive,
+                status: updatedGroup.status,
               );
-              state = state.copyWith(currentGroup: updatedGroup);
+              
+              state = state.copyWith(currentGroup: newGroup);
             }
           },
         )
@@ -219,12 +215,10 @@ class GroupNotifier extends Notifier<GroupState> {
     try {
       await supabase
           .from('groups')
-          .update({'status': 'recommendation_started'}).eq('id', group.id);
-
-      await _groupChannel?.sendBroadcastMessage(
-        event: 'recommendation_started',
-        payload: {},
-      );
+          .update({'status': 'recommendation_started'})
+          .eq('id', group.id)
+          .select()
+          .single();
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to start recommendation: $e',

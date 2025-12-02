@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/providers/group_provider.dart';
+import 'package:movie_recommendation_app/screens/splash.dart';
 
 class GroupLobbyScreen extends ConsumerStatefulWidget {
   final bool isAdmin;
@@ -18,12 +19,8 @@ class GroupLobbyScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
   void _showSnackbar(String text, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -45,9 +42,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
   }
 
   Future<void> _startRecommendationProcess(BuildContext context) async {
-    setState(() async {
-      await ref.read(groupProvider.notifier).startRecommendationProcess();
-    });
+    await ref.read(groupProvider.notifier).startRecommendationProcess();
   }
 
   Future<void> _handleExit() async {
@@ -113,10 +108,19 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
           next.currentGroup?.status == 'recommendation_started') {
         if (mounted && ModalRoute.of(context)?.isCurrent == true) {
           _showSnackbar(
-            'Starting recommendation process...',
-            Colors.grey.shade300,
+            'Recommendation process started!',
+            Colors.green,
           );
-          // TODO: NAWIGATOR DO NOWEGO EKRANU
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => const SplashScreen(),
+                ),
+              );
+            }
+          });
         }
       }
     });
