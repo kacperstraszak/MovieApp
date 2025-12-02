@@ -1,17 +1,17 @@
 class Group {
-  final String id;
-  final String code;
-  final String adminId;
-  final bool isActive;
-  final String status;
-
-  Group({
+  const Group({
     required this.id,
     required this.code,
     required this.adminId,
     required this.isActive,
     this.status = 'lobby',
   });
+
+  final String id;
+  final String code;
+  final String adminId;
+  final bool isActive;
+  final String status;
 
   factory Group.fromJson(Map<String, dynamic> json) {
     return Group(

@@ -1,17 +1,17 @@
 class GroupMember {
-  final String userId;
-  final String username;
-  final String imageUrl;
-  final bool isAdmin;
-  final DateTime? joinedAt;
-
-  GroupMember({
+  const GroupMember({
     required this.userId,
     required this.username,
     required this.imageUrl,
     this.isAdmin = false,
     this.joinedAt,
   });
+
+  final String userId;
+  final String username;
+  final String imageUrl;
+  final bool isAdmin;
+  final DateTime? joinedAt;
 
   factory GroupMember.fromPresence(Map<String, dynamic> json) {
     return GroupMember(
