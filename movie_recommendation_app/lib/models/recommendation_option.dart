@@ -1,11 +1,10 @@
 class RecommendationOption {
   const RecommendationOption({
-    this.genres = const [],
     this.includeCrew = false,
-    this.movieCount = 50,
+    this.genreIds = const [],
+    this.movieCount = 20,
   });
-
   final bool includeCrew;
-  final List<String> genres;
+  final List<int> genreIds;
   final int movieCount;
 }
