@@ -10,6 +10,7 @@ class MovieDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final String imageToUse = movie.backdropPath ?? movie.posterPath;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -26,7 +27,7 @@ class MovieDetailsScreen extends StatelessWidget {
                   Hero(
                     tag: movie.id,
                     child: Image.network(
-                      movie.posterPath,
+                      imageToUse,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: colorScheme.surfaceContainerHighest,

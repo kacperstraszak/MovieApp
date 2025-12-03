@@ -11,6 +11,7 @@ class MovieElement extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final String imageToUse = movie.backdropPath ?? movie.posterPath;
 
     return Card(
       elevation: 0,
@@ -37,7 +38,7 @@ class MovieElement extends StatelessWidget {
               child: Hero(
                 tag: movie.id,
                 child: Image.network(
-                  movie.posterPath,
+                  imageToUse,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: colorScheme.surfaceContainerHighest,
