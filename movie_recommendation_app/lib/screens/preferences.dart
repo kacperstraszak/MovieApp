@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/recommendation_option.dart';
+import 'package:movie_recommendation_app/providers/movie_provider.dart';
+import 'package:movie_recommendation_app/screens/home.dart';
 
 class PreferencesScreen extends ConsumerStatefulWidget {
   const PreferencesScreen({super.key});
@@ -14,54 +16,41 @@ class PreferencesScreen extends ConsumerStatefulWidget {
 class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
   bool _includeCrew = false;
   double _moviecount = 50;
-  final List<String> _usersGenres = [];
+  final List<int> _selectedGenreIds = [];
 
   final double minValueSlider = 20;
   final double maxValueSlider = 100;
 
-  final List<String> _allGenres = [
-    'Action',
-    'Adventure',
-    'Animation',
-    'Comedy',
-    'Crime',
-    'Documentary',
-    'Drama',
-    'Family',
-    'Fantasy',
-    'History',
-    'Horror',
-    'Music',
-    'Mystery',
-    'Romance',
-    'Science Fiction',
-    'Thriller',
-    'War',
-    'Western'
-  ];
-
-  void _onGenreSelected(String genre, bool selected) {
+  void _onGenreSelected(int genreId, bool selected) {
     setState(() {
       if (selected) {
-        _usersGenres.add(genre);
+        _selectedGenreIds.add(genreId);
       } else {
-        _usersGenres.remove(genre);
+        _selectedGenreIds.remove(genreId);
       }
     });
   }
 
-  void _submitPreferences() {
-    final option = RecommendationOption(
+  void _submitPreferences() async {
+    final options = RecommendationOption(
       includeCrew: _includeCrew,
-      genres: _usersGenres,
+      genreIds: _selectedGenreIds,
       movieCount: _moviecount.toInt(),
     );
 
-    //TODO: POBIERANIE FILMÓW I 
+    await ref.read(moviesProvider.notifier).loadMoviesBasedOnOptions(options);
+
+    if (!mounted) return;
+    // TODO: TERAZ TINDERSWAP TUTAJ MUSI BYĆ ELO
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (ctx) => const HomeScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final genresAsync = ref.watch(genresProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Preferences'),
@@ -156,23 +145,32 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
                   ),
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 4.0,
-              children: _allGenres.map((genre) {
-                final isSelected = _usersGenres.contains(genre);
-                return FilterChip(
-                  label: Text(genre),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    _onGenreSelected(genre, selected);
-                  },
-                  selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                  checkmarkColor:
-                      Theme.of(context).colorScheme.onPrimaryContainer,
-                );
-              }).toList(),
+            
+            genresAsync.when(
+              data: (genres) => Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: genres.map((genre) {
+                  final id = genre['id'] as int;
+                  final name = genre['name'] as String;
+                  final isSelected = _selectedGenreIds.contains(id);
+
+                  return FilterChip(
+                    label: Text(name),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      _onGenreSelected(id, selected);
+                    },
+                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                    checkmarkColor:
+                        Theme.of(context).colorScheme.onPrimaryContainer,
+                  );
+                }).toList(),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
             ),
+
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
