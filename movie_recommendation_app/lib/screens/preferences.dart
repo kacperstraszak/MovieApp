@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/recommendation_option.dart';
+import 'package:movie_recommendation_app/providers/genre_provider.dart';
 import 'package:movie_recommendation_app/providers/movie_provider.dart';
-import 'package:movie_recommendation_app/screens/home.dart';
+import 'package:movie_recommendation_app/screens/swipe.dart';
 
 class PreferencesScreen extends ConsumerStatefulWidget {
   const PreferencesScreen({super.key});
@@ -38,12 +39,13 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
       movieCount: _moviecount.toInt(),
     );
 
-    await ref.read(moviesProvider.notifier).loadMoviesBasedOnOptions(options);
+    await ref
+        .read(recommendationMoviesProvider.notifier)
+        .loadMoviesBasedOnOptions(options);
 
     if (!mounted) return;
-    // TODO: TERAZ TINDERSWAP TUTAJ MUSI BYĆ ELO
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (ctx) => const HomeScreen()),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (ctx) => const SwipeScreen()),
     );
   }
 
@@ -145,7 +147,6 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
                   ),
             ),
             const SizedBox(height: 16),
-            
             genresAsync.when(
               data: (genres) => Wrap(
                 spacing: 8.0,
@@ -161,7 +162,8 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
                     onSelected: (selected) {
                       _onGenreSelected(id, selected);
                     },
-                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                    selectedColor:
+                        Theme.of(context).colorScheme.primaryContainer,
                     checkmarkColor:
                         Theme.of(context).colorScheme.onPrimaryContainer,
                   );
@@ -170,7 +172,6 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Error: $err')),
             ),
-
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
@@ -185,6 +186,7 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),

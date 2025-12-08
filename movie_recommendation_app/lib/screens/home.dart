@@ -10,7 +10,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final movies = ref.watch(moviesProvider);
+    final movies = ref.watch(trendingMoviesProvider);
 
     Widget content = preloader;
     if (movies.isNotEmpty) {
