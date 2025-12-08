@@ -171,7 +171,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 32),
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         boxShadow: [
@@ -193,14 +195,14 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
                             ),
                             icon: Icons.close,
                             color: Colors.red,
-                            size: 64,
+                            size: 75,
                           ),
                           ActionButton(
                             onPressed: () =>
                                 _handleNotSeen(context, movies.first.id),
                             icon: Icons.visibility_off,
                             color: Colors.grey,
-                            size: 50,
+                            size: 54,
                             label: 'Not Seen',
                           ),
                           ActionButton(
@@ -211,11 +213,12 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
                             ),
                             icon: Icons.favorite,
                             color: Colors.green,
-                            size: 64,
+                            size: 75,
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16)
                   ],
                 ),
               ],
