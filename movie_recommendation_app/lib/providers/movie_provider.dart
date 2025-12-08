@@ -28,11 +28,6 @@ class TrendingMoviesNotifier extends Notifier<List<Movie>> {
   }
 }
 
-final trendingMoviesProvider =
-    NotifierProvider<TrendingMoviesNotifier, List<Movie>>(
-  TrendingMoviesNotifier.new,
-);
-
 class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
   @override
   List<Movie> build() {
@@ -129,40 +124,6 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
         if (movie.id != movieId) movie,
     ];
   }
-
-  Future<void> generateGroupCandidatesStub() async {
-    final groupId = ref.read(groupProvider).currentGroup?.id;
-    if (groupId == null) return;
-
-    try {
-      final interactions = await supabase
-          .from('user_interactions')
-          .select('movie_id')
-          .eq('group_id', groupId)
-          .eq('interaction_type', 'like');
-
-      final List<int> movieIds = (interactions as List)
-          .map((e) => e['movie_id'] as int)
-          .toSet()
-          .toList()
-          .take(10)
-          .toList();
-
-      if (movieIds.isEmpty) return;
-
-      final List<Map<String, dynamic>> inserts = movieIds
-          .map((mid) => {
-                'group_id': groupId,
-                'movie_id': mid,
-              })
-          .toList();
-
-      await supabase.from('group_candidates').delete().eq('group_id', groupId);
-      await supabase.from('group_candidates').insert(inserts);
-    } catch (e) {
-      print('Error generating candidates: $e');
-    }
-  }
 }
 
 final recommendationMoviesProvider =
@@ -170,31 +131,10 @@ final recommendationMoviesProvider =
   RecommendationMoviesNotifier.new,
 );
 
-final candidatesProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final groupId = ref.read(groupProvider).currentGroup?.id;
-  if (groupId == null) return [];
 
-  final data = await supabase
-      .from('group_candidates')
-      .select('id, movie:movies(*)')
-      .eq('group_id', groupId);
+final trendingMoviesProvider =
+    NotifierProvider<TrendingMoviesNotifier, List<Movie>>(
+  TrendingMoviesNotifier.new,
+);
 
-  return List<Map<String, dynamic>>.from(data);
-});
-
-final voteActionProvider = Provider((ref) {
-  return (int candidateId, int score) async {
-    final userId = supabase.auth.currentUser?.id;
-    final groupId = ref.read(groupProvider).currentGroup?.id;
-    if (userId == null || groupId == null) return;
-
-    await supabase.from('final_votes').upsert({
-      'user_id': userId,
-      'group_id': groupId,
-      'candidate_id': candidateId,
-      'score': score,
-    }, onConflict: 'user_id, candidate_id');
-  };
-});
 
