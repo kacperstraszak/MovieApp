@@ -23,7 +23,7 @@ class HomeScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.outline,
       appBar: AppBar(
         title: const Text('Movie Recommendation App'),
       ),
