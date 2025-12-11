@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-class StarRatingDialog extends StatefulWidget {
-  const StarRatingDialog({super.key});
+class RatingDialog extends StatefulWidget {
+  const RatingDialog({super.key});
+
   @override
-  State<StarRatingDialog> createState() => _StarRatingDialogState();
+  State<RatingDialog> createState() => _RatingDialogState();
 }
 
-class _StarRatingDialogState extends State<StarRatingDialog> {
-  int _stars = 3;
+class _RatingDialogState extends State<RatingDialog> {
+  double _stars = 3.0;
 
   @override
   Widget build(BuildContext context) {
@@ -25,24 +27,28 @@ class _StarRatingDialogState extends State<StarRatingDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Rate this movie from 1-5 stars.',
+            'Rate the movie on the scale!',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
             ),
           ),
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              return IconButton(
-                onPressed: () => setState(() => _stars = index + 1),
-                icon: Icon(
-                  index < _stars ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                  size: 40,
-                ),
-              );
-            }),
+          RatingBar.builder(
+            initialRating: _stars,
+            minRating: 0.5,
+            direction: Axis.horizontal,
+            allowHalfRating: true, 
+            itemCount: 5,
+            itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+            itemBuilder: (context, _) => const Icon(
+              Icons.star,
+              color: Colors.amber,
+            ),
+            onRatingUpdate: (rating) {
+              setState(() {
+                _stars = rating;
+              });
+            },
           ),
         ],
       ),
