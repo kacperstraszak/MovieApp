@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/movie.dart';
+import 'package:movie_recommendation_app/providers/group_provider.dart';
 import 'package:movie_recommendation_app/providers/movie_provider.dart';
+import 'package:movie_recommendation_app/providers/recommendation_provider.dart';
+import 'package:movie_recommendation_app/screens/recommendations.dart';
 import 'package:movie_recommendation_app/widgets/action_button.dart';
-import 'package:movie_recommendation_app/widgets/star_rating_dialog.dart';
+import 'package:movie_recommendation_app/widgets/rating_dialog.dart';
 import 'package:movie_recommendation_app/widgets/swipe_movie_element.dart';
 
 class SwipeScreen extends ConsumerStatefulWidget {
@@ -17,18 +20,31 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
   double _dragOffset = 0;
   bool _isDragging = false;
 
+  void _showSnackbar(String text, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _handleSwipe(BuildContext context, Movie movie, bool liked) async {
     if (!liked) {
       await ref.read(recommendationMoviesProvider.notifier).recordInteraction(
             movieId: movie.id,
             type: 'dislike',
-            rating: 1,
+            rating: 0.5,
           );
     } else {
-      final int? stars = await showDialog<int>(
+      final double? stars = await showDialog<double>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => const StarRatingDialog(),
+        builder: (ctx) => const RatingDialog(),
       );
 
       if (stars == null) {
@@ -64,12 +80,24 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
   }
 
   void _finishPhase(BuildContext context) async {
+    final provider = ref.read(groupRecommendationsProvider.notifier);
+    final success = await provider.generateRecommendations();
+    if (success) {
+      await provider.loadGroupRecommendations();
+    }
     if (context.mounted) {
-      // Navigator.of(context).pushReplacement(
-      //   MaterialPageRoute(builder: (ctx) {
-      //TODO: PRZEKIEROWANIE
-      // }),
-      // );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (ctx) => const RecommendationsScreen()),
+      );
+    }
+  }
+
+  Future<void> _finishedSwiping(BuildContext context) async {
+    final provider = ref.read(groupProvider.notifier);
+    await provider.updateCurrentUserStatus(isFinished: true);
+    if (await provider.areAllUsersFinished()) {
+      await provider.changeGroupStatus('swiped');
+      await provider.updateAllGroupMembers();
     }
   }
 
@@ -77,6 +105,33 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
   Widget build(BuildContext context) {
     final movies = ref.read(recommendationMoviesProvider);
     final screenWidth = MediaQuery.of(context).size.width;
+
+    ref.listen(groupProvider, (previous, next) {
+      if (next.errorMessage != null &&
+          next.errorMessage!.contains('closed by admin')) {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+          _showSnackbar(
+              next.errorMessage!, Theme.of(context).colorScheme.error);
+          Navigator.of(context).pop();
+        }
+      }
+
+      if (previous?.currentGroup?.status != next.currentGroup?.status &&
+          next.currentGroup?.status == 'swiped') {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+          _showSnackbar(
+            'Everyone finished! Wait for Recommendations!',
+            Colors.green,
+          );
+
+          _finishPhase(context);
+        }
+      }
+    });
+
+    if (movies.isEmpty) {
+      _finishedSwiping(context);
+    }
 
     return Scaffold(
       appBar: AppBar(
