@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 Deno.serve(async (req) => {
   const supabaseURL = Deno.env.get('SUPABASE_URL') as string
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
-  const tmdbApiKey = Deno.env.get('TMDB_API_KEY')
+  const tmdbApiKey = Deno.env.get('TMDB_API_KEY_READ')
 
   const supabase = createClient(supabaseURL, serviceKey)
 
@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
 
         genre_ids: movie.genre_ids,
         popularity: movie.popularity,
-        vote_average: movie.vote_average
+        vote_average: movie.vote_average,
+        vote_count: movie.vote_count
       }))
 
       const { error } = await supabase.from('movies').upsert(movies)
