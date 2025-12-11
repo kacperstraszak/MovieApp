@@ -2,36 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/functions/random_string.dart';
 import 'package:movie_recommendation_app/models/group.dart';
 import 'package:movie_recommendation_app/models/group_member.dart';
+import 'package:movie_recommendation_app/models/group_state.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-class GroupState {
-  final Group? currentGroup;
-  final List<GroupMember> members;
-  final bool isLoading;
-  final String? errorMessage;
-
-  const GroupState({
-    this.currentGroup,
-    this.members = const [],
-    this.isLoading = false,
-    this.errorMessage,
-  });
-
-  GroupState copyWith({
-    Group? currentGroup,
-    List<GroupMember>? members,
-    bool? isLoading,
-    String? errorMessage,
-  }) {
-    return GroupState(
-      currentGroup: currentGroup ?? this.currentGroup,
-      members: members ?? this.members,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
-}
 
 class GroupNotifier extends Notifier<GroupState> {
   RealtimeChannel? _groupChannel;
@@ -186,19 +159,17 @@ class GroupNotifier extends Notifier<GroupState> {
           ),
           callback: (payload) {
             final newData = payload.newRecord;
-            if (newData != null) {
-              final updatedGroup = Group.fromJson(newData);
-              
-              final newGroup = Group(
-                id: updatedGroup.id,
-                code: updatedGroup.code,
-                adminId: updatedGroup.adminId,
-                isActive: updatedGroup.isActive,
-                status: updatedGroup.status,
-              );
-              
-              state = state.copyWith(currentGroup: newGroup);
-            }
+            final updatedGroup = Group.fromJson(newData);
+
+            final newGroup = Group(
+              id: updatedGroup.id,
+              code: updatedGroup.code,
+              adminId: updatedGroup.adminId,
+              isActive: updatedGroup.isActive,
+              status: updatedGroup.status,
+            );
+
+            state = state.copyWith(currentGroup: newGroup);
           },
         )
         .subscribe((status, error) async {
@@ -208,14 +179,14 @@ class GroupNotifier extends Notifier<GroupState> {
         });
   }
 
-  Future<void> startRecommendationProcess() async {
+  Future<void> changeGroupStatus(String status) async {
     final group = state.currentGroup;
     if (group == null) return;
 
     try {
       await supabase
           .from('groups')
-          .update({'status': 'recommendation_started'})
+          .update({'status': status})
           .eq('id', group.id)
           .select()
           .single();
@@ -258,6 +229,102 @@ class GroupNotifier extends Notifier<GroupState> {
   bool isCurrentUserAdmin() {
     final userId = supabase.auth.currentUser?.id;
     return state.currentGroup?.adminId == userId;
+  }
+
+  Future<void> updateAllGroupMembers({bool isFinished = false}) async {
+    try {
+      final presenceState = _groupChannel!.presenceState();
+
+      final onlineUserIds = <String>{};
+
+      for (final presenceGroup in presenceState) {
+        for (final presence in presenceGroup.presences) {
+          final userId = presence.payload['user_id'] as String?;
+          if (userId != null) {
+            onlineUserIds.add(userId);
+          }
+        }
+      }
+      final userIdList = onlineUserIds.toList();
+
+      if (userIdList.isEmpty) {
+        return;
+      }
+
+      final membersToInsert = userIdList
+          .map((userId) => {
+                'group_id': state.currentGroup!.id,
+                'user_id': userId,
+                'is_finished': isFinished,
+              })
+          .toList();
+
+      await supabase.from('group_members').upsert(
+            membersToInsert,
+            onConflict: 'group_id,user_id',
+          );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed while adding group members: $e',
+      );
+    }
+  }
+
+  Future<void> updateCurrentUserStatus({required bool isFinished}) async {
+    try {
+      final currentUserId = supabase.auth.currentUser?.id;
+
+      if (currentUserId == null) {
+        state = state.copyWith(
+          errorMessage: 'User not authenticated',
+        );
+        return;
+      }
+
+      await supabase
+          .from('group_members')
+          .update({'is_finished': isFinished})
+          .eq('group_id', state.currentGroup!.id)
+          .eq('user_id', currentUserId);
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update user status: $e',
+      );
+    }
+  }
+
+  Future<bool> areAllUsersFinished() async {
+    try {
+      final presenceState = _groupChannel!.presenceState();
+      final onlineUserIds = <String>{};
+
+      for (final presenceGroup in presenceState) {
+        for (final presence in presenceGroup.presences) {
+          final userId = presence.payload['user_id'] as String?;
+          if (userId != null) onlineUserIds.add(userId);
+        }
+      }
+
+      if (onlineUserIds.isEmpty) return false;
+
+      final response = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', state.currentGroup!.id)
+          .eq('is_finished', true);
+
+      final finishedUserIds = (response as List<dynamic>)
+          .map((m) => m['user_id'] as String)
+          .toSet();
+
+      return onlineUserIds.length == finishedUserIds.length &&
+          onlineUserIds.every((id) => finishedUserIds.contains(id));
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to check if all users finished: $e',
+      );
+      return false;
+    }
   }
 }
 

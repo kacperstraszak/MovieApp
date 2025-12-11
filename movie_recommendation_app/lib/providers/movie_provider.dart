@@ -38,35 +38,51 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
     try {
       final int totalCount = options.movieCount;
       final List<Movie> finalMovies = [];
+      final List<int> currentIds = finalMovies.map((e) => e.id).toList();
 
-      int genreTargetCount = 0;
+      void addUniqueMovies(List<Movie> candidates, int limit) {
+        candidates.shuffle();
+        for (var movie in candidates) {
+          if (finalMovies.length >= totalCount) break;
+          if (!currentIds.contains(movie.id)) {
+            finalMovies.add(movie);
+            currentIds.add(movie.id);
+          }
+        }
+      }
+
       if (options.genreIds.isNotEmpty) {
-        genreTargetCount = (totalCount * 0.75).ceil();
+        final int targetCount = (totalCount * 0.7).ceil();
+        
         final genreData = await supabase
             .from('movies')
             .select()
             .filter('genre_ids', 'ov', options.genreIds)
-            .order('popularity', ascending: false)
-            .limit(genreTargetCount);
-        finalMovies.addAll(
-            (genreData as List).map((json) => Movie.fromJson(json)).toList());
+            .order('vote_count', ascending: false)
+            .limit(targetCount * 4); 
+
+        final List<Movie> genreMovies = 
+            (genreData as List).map((json) => Movie.fromJson(json)).toList();
+        
+        addUniqueMovies(genreMovies, targetCount);
       }
 
       int missingCount = totalCount - finalMovies.length;
-      if (missingCount > 0 && options.genreIds.isNotEmpty) {
-        final otherData = await supabase
+      int discoveryTarget = (totalCount * 0.2).floor();
+      
+      if (missingCount > 0 && discoveryTarget > 0 && options.genreIds.isNotEmpty) {
+        final discoveryData = await supabase
             .from('movies')
             .select()
             .not('genre_ids', 'ov', options.genreIds)
-            .order('popularity', ascending: false)
-            .limit(missingCount + 10);
+            .gte('vote_count', 600)
+            .order('vote_average', ascending: false)
+            .limit(discoveryTarget * 5);
 
-        final otherMovies =
-            (otherData as List).map((json) => Movie.fromJson(json)).toList();
-        for (var movie in otherMovies) {
-          if (finalMovies.length >= totalCount) break;
-          if (!finalMovies.any((m) => m.id == movie.id)) finalMovies.add(movie);
-        }
+        final List<Movie> discoveryMovies = 
+            (discoveryData as List).map((json) => Movie.fromJson(json)).toList();
+
+        addUniqueMovies(discoveryMovies, discoveryMovies.length);
       }
 
       missingCount = totalCount - finalMovies.length;
@@ -75,17 +91,17 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
             .from('movies')
             .select()
             .order('popularity', ascending: false)
-            .limit(totalCount + 20);
-        final fallbackMovies =
+            .limit(missingCount + 20);
+
+        final List<Movie> fallbackMovies = 
             (fallbackData as List).map((json) => Movie.fromJson(json)).toList();
-        for (var movie in fallbackMovies) {
-          if (finalMovies.length >= totalCount) break;
-          if (!finalMovies.any((m) => m.id == movie.id)) finalMovies.add(movie);
-        }
+        
+        addUniqueMovies(fallbackMovies, missingCount);
       }
 
       finalMovies.shuffle();
       state = finalMovies;
+      
     } catch (error) {
       state = [];
     }
@@ -94,7 +110,7 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
   Future<void> recordInteraction({
     required int movieId,
     required String type, // 'like', 'dislike', 'not_seen'
-    int? rating,
+    double? rating,
   }) async {
     try {
       final groupId = ref.read(groupProvider).currentGroup?.id;
