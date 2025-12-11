@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:movie_recommendation_app/models/my_auth_state.dart';
 import 'package:movie_recommendation_app/providers/auth_provider.dart';
 import 'package:movie_recommendation_app/widgets/user_image_picker.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +67,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AuthState>(authProvider, (previous, next) {
+    ref.listen<MyAuthState>(authProvider, (previous, next) {
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
         ScaffoldMessenger.of(context).clearSnackBars();
