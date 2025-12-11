@@ -42,7 +42,9 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
   }
 
   Future<void> _startRecommendationProcess(BuildContext context) async {
-    await ref.read(groupProvider.notifier).startRecommendationProcess();
+    final provider = ref.read(groupProvider.notifier);
+    await provider.updateAllGroupMembers();
+    await provider.changeGroupStatus('started');
   }
 
   Future<void> _handleExit() async {
@@ -105,7 +107,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
       }
 
       if (previous?.currentGroup?.status != next.currentGroup?.status &&
-          next.currentGroup?.status == 'recommendation_started') {
+          next.currentGroup?.status == 'started') {
         if (mounted && ModalRoute.of(context)?.isCurrent == true) {
           _showSnackbar(
             'Recommendation process started!',
