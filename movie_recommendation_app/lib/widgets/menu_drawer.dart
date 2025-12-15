@@ -13,7 +13,7 @@ class MenuDrawer extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
 
-    void _showLogoutDialog() {
+    void showLogoutDialog() {
       final colorScheme = Theme.of(context).colorScheme;
 
       showDialog(
@@ -114,7 +114,7 @@ class MenuDrawer extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        'meow meow',
+                        'Find movie for tonight now!',
                         style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurface,
@@ -196,7 +196,7 @@ class MenuDrawer extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              _showLogoutDialog();
+              showLogoutDialog();
             },
           ),
           const Divider(),
