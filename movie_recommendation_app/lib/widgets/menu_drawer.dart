@@ -114,7 +114,7 @@ class MenuDrawer extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        'Find movie for tonight now!',
+                        'Find something for your movie night!',
                         style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurface,
