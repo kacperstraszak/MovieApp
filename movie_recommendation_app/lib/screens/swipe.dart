@@ -148,8 +148,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
     final crew =
         widget.swipeCrew ? ref.watch(popularPeopleProvider) : <CrewMember>[];
     final screenWidth = MediaQuery.of(context).size.width;
-    print(crew);
-    print(movies);
 
     ref.listen(groupProvider, (previous, next) {
       if (next.errorMessage != null &&
