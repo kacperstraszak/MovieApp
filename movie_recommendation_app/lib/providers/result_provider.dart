@@ -19,12 +19,10 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
     }
 
     try {
-      final statsData = await supabase
-          .from('group_recommendations_with_votes')
-          .select('movie_id, consensus_score')
-          .eq('group_id', groupId)
-          .order('consensus_score', ascending: false)
-          .limit(3);
+      final List<dynamic> statsData = await supabase.rpc(
+        'get_group_results',
+        params: {'target_group_id': groupId},
+      );
 
       if (statsData.isEmpty) {
         state = [];
@@ -56,12 +54,11 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
 
       state = results;
     } catch (e) {
-      print("Error loading top results: $e");
       state = [];
     }
   }
 }
 
-final topResultsProvider = NotifierProvider<ResultNotifier, List<ResultMovie>>(
+final resultsProvider = NotifierProvider<ResultNotifier, List<ResultMovie>>(
   ResultNotifier.new,
 );

@@ -231,7 +231,7 @@ class GroupNotifier extends Notifier<GroupState> {
     return state.currentGroup?.adminId == userId;
   }
 
-  Future<void> updateAllGroupMembers({bool isFinished = false}) async {
+  Future<void> updateAllGroupMembers() async {
     try {
       final presenceState = _groupChannel!.presenceState();
 
@@ -255,7 +255,6 @@ class GroupNotifier extends Notifier<GroupState> {
           .map((userId) => {
                 'group_id': state.currentGroup!.id,
                 'user_id': userId,
-                'is_finished': isFinished,
               })
           .toList();
 
@@ -270,7 +269,7 @@ class GroupNotifier extends Notifier<GroupState> {
     }
   }
 
-  Future<void> updateCurrentUserStatus({required bool isFinished}) async {
+  Future<void> updateCurrentUserStatus({required bool isFinished, required String action,}) async {
     try {
       final currentUserId = supabase.auth.currentUser?.id;
 
@@ -283,47 +282,15 @@ class GroupNotifier extends Notifier<GroupState> {
 
       await supabase
           .from('group_members')
-          .update({'is_finished': isFinished})
+          .update({'finished_$action': isFinished})
           .eq('group_id', state.currentGroup!.id)
-          .eq('user_id', currentUserId);
+          .eq('user_id', currentUserId)
+          .select()
+          .single();
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to update user status: $e',
       );
-    }
-  }
-
-  Future<bool> areAllUsersFinished() async {
-    try {
-      final presenceState = _groupChannel!.presenceState();
-      final onlineUserIds = <String>{};
-
-      for (final presenceGroup in presenceState) {
-        for (final presence in presenceGroup.presences) {
-          final userId = presence.payload['user_id'] as String?;
-          if (userId != null) onlineUserIds.add(userId);
-        }
-      }
-
-      if (onlineUserIds.isEmpty) return false;
-
-      final response = await supabase
-          .from('group_members')
-          .select('user_id')
-          .eq('group_id', state.currentGroup!.id)
-          .eq('is_finished', true);
-
-      final finishedUserIds = (response as List<dynamic>)
-          .map((m) => m['user_id'] as String)
-          .toSet();
-
-      return onlineUserIds.length == finishedUserIds.length &&
-          onlineUserIds.every((id) => finishedUserIds.contains(id));
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to check if all users finished: $e',
-      );
-      return false;
     }
   }
 }

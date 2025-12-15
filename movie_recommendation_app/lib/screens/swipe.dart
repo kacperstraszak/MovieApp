@@ -94,16 +94,12 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
 
   Future<void> _finishedSwiping(BuildContext context) async {
     final provider = ref.read(groupProvider.notifier);
-    await provider.updateCurrentUserStatus(isFinished: true);
-    if (await provider.areAllUsersFinished()) {
-      await provider.changeGroupStatus('swiped');
-      await provider.updateAllGroupMembers();
-    }
+    await provider.updateCurrentUserStatus(isFinished: true, action: 'swipe');
   }
 
   @override
   Widget build(BuildContext context) {
-    final movies = ref.read(recommendationMoviesProvider);
+    final movies = ref.watch(recommendationMoviesProvider);
     final screenWidth = MediaQuery.of(context).size.width;
 
     ref.listen(groupProvider, (previous, next) {
@@ -130,7 +126,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
     });
 
     if (movies.isEmpty) {
-      _finishedSwiping(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _finishedSwiping(context);
+      });
     }
 
     return Scaffold(

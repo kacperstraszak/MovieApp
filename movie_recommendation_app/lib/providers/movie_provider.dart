@@ -53,24 +53,26 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
 
       if (options.genreIds.isNotEmpty) {
         final int targetCount = (totalCount * 0.7).ceil();
-        
+
         final genreData = await supabase
             .from('movies')
             .select()
             .filter('genre_ids', 'ov', options.genreIds)
             .order('vote_count', ascending: false)
-            .limit(targetCount * 4); 
+            .limit(targetCount * 4);
 
-        final List<Movie> genreMovies = 
+        final List<Movie> genreMovies =
             (genreData as List).map((json) => Movie.fromJson(json)).toList();
-        
+
         addUniqueMovies(genreMovies, targetCount);
       }
 
       int missingCount = totalCount - finalMovies.length;
       int discoveryTarget = (totalCount * 0.2).floor();
-      
-      if (missingCount > 0 && discoveryTarget > 0 && options.genreIds.isNotEmpty) {
+
+      if (missingCount > 0 &&
+          discoveryTarget > 0 &&
+          options.genreIds.isNotEmpty) {
         final discoveryData = await supabase
             .from('movies')
             .select()
@@ -79,8 +81,9 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
             .order('vote_average', ascending: false)
             .limit(discoveryTarget * 5);
 
-        final List<Movie> discoveryMovies = 
-            (discoveryData as List).map((json) => Movie.fromJson(json)).toList();
+        final List<Movie> discoveryMovies = (discoveryData as List)
+            .map((json) => Movie.fromJson(json))
+            .toList();
 
         addUniqueMovies(discoveryMovies, discoveryMovies.length);
       }
@@ -93,15 +96,14 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
             .order('popularity', ascending: false)
             .limit(missingCount + 20);
 
-        final List<Movie> fallbackMovies = 
+        final List<Movie> fallbackMovies =
             (fallbackData as List).map((json) => Movie.fromJson(json)).toList();
-        
+
         addUniqueMovies(fallbackMovies, missingCount);
       }
 
       finalMovies.shuffle();
       state = finalMovies;
-      
     } catch (error) {
       state = [];
     }
@@ -122,13 +124,16 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
           if (movie.id != movieId) movie,
       ];
 
-      await supabase.from('user_interactions').upsert({
-        'group_id': groupId,
-        'user_id': userId,
-        'movie_id': movieId,
-        'interaction_type': type,
-        'rating': rating,
-      });
+      await supabase.from('user_interactions').upsert(
+        {
+          'group_id': groupId,
+          'user_id': userId,
+          'movie_id': movieId,
+          'interaction_type': type,
+          'rating': rating,
+        },
+        onConflict: 'group_id,user_id,movie_id',
+      );
     } catch (e) {
       print('Error recording interaction: $e');
     }
@@ -147,10 +152,7 @@ final recommendationMoviesProvider =
   RecommendationMoviesNotifier.new,
 );
 
-
 final trendingMoviesProvider =
     NotifierProvider<TrendingMoviesNotifier, List<Movie>>(
   TrendingMoviesNotifier.new,
 );
-
-

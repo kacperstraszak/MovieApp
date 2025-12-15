@@ -18,6 +18,19 @@ class _RecommendationScreenState extends ConsumerState<RecommendationsScreen> {
   bool _isGenerating = false;
   final Map<int, double> _userRatings = {}; // movie_id, rating
 
+  void _showSnackbar(String text, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _handleGenerateRecommendations() async {
     setState(() {
       _isGenerating = true;
@@ -31,8 +44,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+        _showSnackbar(
+          'Error: $e',
+          Theme.of(context).colorScheme.error,
         );
       }
     } finally {
@@ -58,7 +72,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationsScreen> {
           .voteForMovies(userRatings: _userRatings);
       await ref
           .read(groupProvider.notifier)
-          .updateCurrentUserStatus(isFinished: true);
+          .updateCurrentUserStatus(isFinished: true, action: 'vote');
     }
 
     void goToResults() {
@@ -112,10 +126,10 @@ class _RecommendationScreenState extends ConsumerState<RecommendationsScreen> {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: ratedMoviesCount == totalMovies
-                          ? (){
-                            submitRatings();
-                            goToResults();
-                          }
+                          ? () {
+                              submitRatings();
+                              goToResults();
+                            }
                           : null,
                       child: Text(
                         ratedMoviesCount == totalMovies
@@ -208,6 +222,39 @@ class _RecommendationScreenState extends ConsumerState<RecommendationsScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _isGenerating
+                            ? null
+                            : _handleGenerateRecommendations,
+                        icon: _isGenerating
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(
+                                Icons.autorenew,
+                                size: 20,
+                              ),
+                        label: Text(
+                          _isGenerating
+                              ? "Generating..."
+                              : "Generate Recommendations",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          iconColor: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
                     ]
