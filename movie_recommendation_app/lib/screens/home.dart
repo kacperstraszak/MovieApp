@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/providers/movie_provider.dart';
+import 'package:movie_recommendation_app/screens/info.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:movie_recommendation_app/widgets/menu_drawer.dart';
 import 'package:movie_recommendation_app/widgets/movie_element.dart';
@@ -26,10 +27,17 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).colorScheme.outline,
       appBar: AppBar(
         title: const Text('Movie Recommendation App'),
+        centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => const InfoScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.info_outline),
           ),
         ],
       ),
