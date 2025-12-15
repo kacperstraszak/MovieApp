@@ -137,7 +137,7 @@ class RateRecommendationTile extends StatelessWidget {
                           direction: Axis.horizontal,
                           allowHalfRating: false,
                           itemCount: 5,
-                          itemSize: 40.0,
+                          itemSize: 32.0,
                           glow: false,
                           itemPadding: const EdgeInsets.symmetric(horizontal: 2.0),
                           itemBuilder: (context, index) {
