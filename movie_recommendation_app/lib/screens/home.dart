@@ -26,6 +26,12 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).colorScheme.outline,
       appBar: AppBar(
         title: const Text('Movie Recommendation App'),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: Icon(Icons.info_outline),
+          ),
+        ],
       ),
       drawer: const MenuDrawer(),
       body: content,
