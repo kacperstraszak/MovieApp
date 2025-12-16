@@ -77,6 +77,17 @@ serve(async (req: Request) => {
       );
     }
 
+    const { data: likedPeople } = await supabase
+      .from('liked_people')
+      .select('person_id')
+      .eq('group_id', groupId);
+
+    const likedPersonIds = new Set<number>(
+      likedPeople?.map((lp: any) => lp.person_id) || []
+    );
+
+    console.log(`Found ${likedPersonIds.size} liked crew members for group ${groupId}`);
+
     const seenMovieIds = new Set<number>(
       interactions.map((i: any) => i.movie_id).filter(Boolean)
     );
@@ -264,6 +275,43 @@ serve(async (req: Request) => {
       );
     }
 
+    let crewBoostCount = 0;
+    
+    if (likedPersonIds.size > 0) {
+      const candidateIds = Array.from(candidates.keys());
+      
+      const { data: moviePeopleData } = await supabase
+        .from('movie_people')
+        .select('movie_id, person_id')
+        .in('movie_id', candidateIds);
+
+      if (moviePeopleData && moviePeopleData.length > 0) {
+        const movieCrewMap = new Map<number, Set<number>>();
+        
+        moviePeopleData.forEach((mp: any) => {
+          if (!movieCrewMap.has(mp.movie_id)) {
+            movieCrewMap.set(mp.movie_id, new Set());
+          }
+          movieCrewMap.get(mp.movie_id)!.add(mp.person_id);
+        });
+
+        movieCrewMap.forEach((crewSet, movieId) => {
+          const likedCrewCount = Array.from(crewSet).filter(pid => 
+            likedPersonIds.has(pid)
+          ).length;
+
+          if (likedCrewCount > 0) {
+            const currentScore = candidates.get(movieId) || 0;
+            const crewBonus = Math.min(likedCrewCount * 0.1, 0.3);
+            candidates.set(movieId, currentScore + crewBonus);
+            crewBoostCount++;
+            
+            console.log(`Movie ${movieId} boosted by ${crewBonus} (${likedCrewCount} liked crew)`);
+          }
+        });
+      }
+    }
+
     const topCandidates = Array.from(candidates.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 20); 
@@ -285,16 +333,21 @@ serve(async (req: Request) => {
           const resp = await fetch(buildTmdbUrl(`/movie/${movieId}`), { headers: tmdbHeaders });
           if (resp.ok) {
             const movie = await resp.json();
+            
+            if (!movie.poster_path || !movie.backdrop_path) {
+                continue; 
+            }
+
             moviesToInsert.push({
               id: movie.id,
               title: movie.title || 'Unknown',
               description: movie.overview || null,
               release: movie.release_date || null,
-              poster_path: `https://image.tmdb.org/t/p/w500${movie.poster_path}` || null,
+              poster_path: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
               genre_ids: movie.genres ? movie.genres.map((g: any) => g.id) : [],
               popularity: movie.popularity || 0,
               vote_average: movie.vote_average || 0,
-              backdrop_path: `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` || null,
+              backdrop_path: `https://image.tmdb.org/t/p/w780${movie.backdrop_path}`,
               vote_count: movie.vote_count || null
             });
           }
@@ -327,7 +380,9 @@ serve(async (req: Request) => {
         count: recommendations.length,
         stats: {
           users: userCount,
-          candidates: candidates.size
+          candidates: candidates.size,
+          likedCrew: likedPersonIds.size,
+          crewBoosted: crewBoostCount
         }
       }), 
       { headers: { 'Content-Type': 'application/json' } }
