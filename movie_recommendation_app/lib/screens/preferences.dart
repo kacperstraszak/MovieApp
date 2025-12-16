@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/recommendation_option.dart';
+import 'package:movie_recommendation_app/providers/crew_member_provider.dart';
 import 'package:movie_recommendation_app/providers/genre_provider.dart';
 import 'package:movie_recommendation_app/providers/movie_provider.dart';
 import 'package:movie_recommendation_app/screens/swipe.dart';
@@ -43,9 +44,16 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
         .read(recommendationMoviesProvider.notifier)
         .loadMoviesBasedOnOptions(options);
 
+    if (_includeCrew) {
+      await ref.read(popularPeopleProvider.notifier).loadPopularPeople();
+    }
+
     if (!mounted) return;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (ctx) => const SwipeScreen()),
+      MaterialPageRoute(
+          builder: (ctx) => SwipeScreen(
+                swipeCrew: _includeCrew,
+              )),
     );
   }
 
