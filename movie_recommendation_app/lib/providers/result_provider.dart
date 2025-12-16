@@ -10,7 +10,7 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
     return [];
   }
 
-  Future<void> loadResults() async {
+  Future<void> loadResults({int maxRetries = 3}) async {
     final groupId = ref.read(groupProvider).currentGroup?.id;
 
     if (groupId == null) {
@@ -19,10 +19,28 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
     }
 
     try {
-      final List<dynamic> statsData = await supabase.rpc(
-        'get_group_results',
-        params: {'target_group_id': groupId},
-      );
+      List<dynamic> statsData = [];
+      int attempts = 0;
+
+      while (attempts < maxRetries) {
+        statsData = await supabase.rpc(
+          'get_group_results',
+          params: {'target_group_id': groupId},
+        );
+
+        final hasValidScores = statsData.any(
+            (e) => ((e['consensus_score'] as num?)?.toDouble() ?? 0.0) > 0.0);
+
+        if (statsData.isEmpty || !hasValidScores) {
+          attempts++;
+          if (attempts < maxRetries) {
+            await Future.delayed(Duration(seconds: attempts * 2));
+            continue;
+          }
+        }
+
+        break;
+      }
 
       if (statsData.isEmpty) {
         state = [];
@@ -44,10 +62,12 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
           (m) => m.id == stat['movie_id'],
         );
 
-        if (movie.id != 0) {
+        final score = (stat['consensus_score'] as num?)?.toDouble() ?? 0.0;
+
+        if (movie.id != 0 && score > 0.0) {
           results.add(ResultMovie(
             movie: movie,
-            score: (stat['consensus_score'] as num?)?.toDouble() ?? 0.0,
+            score: score,
           ));
         }
       }
