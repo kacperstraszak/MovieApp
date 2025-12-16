@@ -429,7 +429,7 @@ class _GroupLobbyScreenState extends ConsumerState<GroupLobbyScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: members.length >= 2
+                  onPressed: members.length >= 1 //TODO CHANGE TO 2 LATER
                       ? () => _startRecommendationProcess(context)
                       : null,
                   style: ElevatedButton.styleFrom(
