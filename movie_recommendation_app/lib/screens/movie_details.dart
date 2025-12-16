@@ -1,16 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/movie.dart';
+import 'package:movie_recommendation_app/providers/watchlist_provider.dart';
 
-class MovieDetailsScreen extends StatelessWidget {
+class MovieDetailsScreen extends ConsumerWidget {
   const MovieDetailsScreen({super.key, required this.movie});
 
   final Movie movie;
 
+  void _copyLink(BuildContext context) {
+    final movieUrl = 'https://www.themoviedb.org/movie/${movie.id}';
+
+    final String textToCopy = '''
+    🎬 Check that Movie: ${movie.title}
+    ${movie.description}
+    📅 Release: ${movie.releaseDate}
+
+    $movieUrl
+    ''';
+
+    Clipboard.setData(ClipboardData(text: textToCopy));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Movie Details copied to Clipboard!'),
+          ],
+        ),
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final String imageToUse = movie.backdropPath ?? movie.posterPath;
+    final isInWatchlist = ref.watch(watchlistProvider).contains(movie.id);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -162,21 +198,37 @@ class MovieDetailsScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.favorite_border),
-                          label: const Text('Add to Favorites'),
+                          onPressed: () {
+                            ref
+                                .read(watchlistProvider.notifier)
+                                .toggleMovie(movie.id);
+                          },
+                          icon: Icon(
+                            isInWatchlist
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                          ),
+                          label: Text(
+                            isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
+                          ),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            backgroundColor: isInWatchlist
+                                ? colorScheme.primaryContainer
+                                : colorScheme.primary,
+                            foregroundColor: isInWatchlist
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onPrimary,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.tonalIcon(
-                          onPressed: () {},
+                          onPressed: () => _copyLink(context),
                           icon: const Icon(Icons.share),
                           label: const Text('Share'),
                           style: FilledButton.styleFrom(
