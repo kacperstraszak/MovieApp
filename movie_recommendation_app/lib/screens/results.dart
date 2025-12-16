@@ -14,6 +14,8 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+  var _areResultsReady = false;
+
   void _showSnackbar(String text, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -72,11 +74,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     }
   }
 
+  void loadResults() async {
+    await ref.read(resultsProvider.notifier).loadResults();
+    setState(() {
+      _areResultsReady = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final groupState = ref.watch(groupProvider);
-    final status = groupState.currentGroup?.status;
-
     ref.listen(groupProvider, (previous, next) {
       if (next.errorMessage != null) {
         _showSnackbar(
@@ -87,7 +93,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
 
       if (previous?.currentGroup?.status != 'completed' &&
           next.currentGroup?.status == 'completed') {
-        ref.read(resultsProvider.notifier).loadResults();
+        loadResults();
       }
     });
 
@@ -112,7 +118,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           ),
         ],
       ),
-      body: status == 'completed' ? const ResultsView() : const WaitingView(),
+      body: _areResultsReady ? const ResultsView() : const WaitingView(),
     );
   }
 }
