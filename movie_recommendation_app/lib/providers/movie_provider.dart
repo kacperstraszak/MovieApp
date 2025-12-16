@@ -119,10 +119,7 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
       final userId = supabase.auth.currentUser?.id;
       if (groupId == null || userId == null) return;
 
-      state = [
-        for (final movie in state)
-          if (movie.id != movieId) movie,
-      ];
+      removeMovie(movieId);
 
       await supabase.from('user_interactions').upsert(
         {
@@ -146,6 +143,44 @@ class RecommendationMoviesNotifier extends Notifier<List<Movie>> {
     ];
   }
 }
+
+class SearchMoviesNotifier extends Notifier<List<Movie>> {
+  @override
+  List<Movie> build() {
+    return [];
+  }
+
+  Future<void> searchMovies(String query) async {
+    if (query.isEmpty) {
+      state = [];
+      return;
+    }
+
+    try {
+      final data = await supabase
+          .from('movies')
+          .select()
+          .ilike('title', '%$query%')
+          .order('popularity', ascending: false)
+          .limit(20);
+
+      final movies =
+          (data as List).map((json) => Movie.fromJson(json)).toList();
+      state = movies;
+    } catch (error) {
+      state = [];
+    }
+  }
+
+  void clearSearch() {
+    state = [];
+  }
+}
+
+final searchMoviesProvider =
+    NotifierProvider<SearchMoviesNotifier, List<Movie>>(
+  SearchMoviesNotifier.new,
+);
 
 final recommendationMoviesProvider =
     NotifierProvider<RecommendationMoviesNotifier, List<Movie>>(
