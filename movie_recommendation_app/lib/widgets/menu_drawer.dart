@@ -4,6 +4,7 @@ import 'package:movie_recommendation_app/providers/auth_provider.dart';
 import 'package:movie_recommendation_app/providers/group_provider.dart';
 import 'package:movie_recommendation_app/screens/group_lobby.dart';
 import 'package:movie_recommendation_app/screens/join_group.dart';
+import 'package:movie_recommendation_app/screens/search.dart';
 
 class MenuDrawer extends ConsumerWidget {
   const MenuDrawer({super.key});
@@ -130,7 +131,11 @@ class MenuDrawer extends ConsumerWidget {
             leading: const Icon(Icons.search),
             title: const Text('Search'),
             onTap: () {
-              // meow meow meow meow
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => const SearchScreen(),
+                ),
+              );
             },
           ),
           const Divider(),
