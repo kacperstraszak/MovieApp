@@ -195,6 +195,46 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen> {
               : 'Rate Crew (${crew.length})',
         ),
         automaticallyImplyLeading: false,
+        actions: [
+          if (_currentMode == SwipeMode.movies &&
+              widget.swipeCrew &&
+              crew.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.people,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${crew.length}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: !showContent
           ? Center(
