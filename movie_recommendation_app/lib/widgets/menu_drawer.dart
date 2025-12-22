@@ -5,6 +5,7 @@ import 'package:movie_recommendation_app/providers/group_provider.dart';
 import 'package:movie_recommendation_app/screens/group_lobby.dart';
 import 'package:movie_recommendation_app/screens/join_group.dart';
 import 'package:movie_recommendation_app/screens/search.dart';
+import 'package:movie_recommendation_app/screens/user_profile.dart';
 
 class MenuDrawer extends ConsumerWidget {
   const MenuDrawer({super.key});
@@ -13,6 +14,17 @@ class MenuDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
+
+    void goToGroup(groupId) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (ctx) => GroupLobbyScreen(
+            isAdmin: true,
+            groupId: groupId.toString(),
+          ),
+        ),
+      );
+    }
 
     void showLogoutDialog() {
       final colorScheme = Theme.of(context).colorScheme;
@@ -153,14 +165,7 @@ class MenuDrawer extends ConsumerWidget {
             onTap: () async {
               var groupId =
                   await ref.read(groupProvider.notifier).createGroup();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (ctx) => GroupLobbyScreen(
-                    isAdmin: true,
-                    groupId: groupId.toString(),
-                  ),
-                ),
-              );
+              goToGroup(groupId);
             },
           ),
           const Divider(),
@@ -177,7 +182,11 @@ class MenuDrawer extends ConsumerWidget {
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
-              // meow meow meow meow
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => const UserProfileScreen(),
+                ),
+              );
             },
           ),
           const Divider(),
