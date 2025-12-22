@@ -28,26 +28,30 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
           params: {'target_group_id': groupId},
         );
 
-        final hasValidScores = statsData.any(
-            (e) => ((e['consensus_score'] as num?)?.toDouble() ?? 0.0) > 0.0);
+        final validStats = statsData.where((e) {
+          final score =
+              (e['consensus_score'] as num?)?.toDouble() ?? 0.0;
+          return score > 0.0;
+        }).toList();
 
-        if (statsData.isEmpty || !hasValidScores) {
-          attempts++;
-          if (attempts < maxRetries) {
-            await Future.delayed(Duration(seconds: attempts * 2));
-            continue;
-          }
+        if (validStats.length >= 3) {
+          statsData = validStats;
+          break;
         }
 
-        break;
+        attempts++;
+        if (attempts < maxRetries) {
+          await Future.delayed(Duration(seconds: attempts * 2));
+        }
       }
 
-      if (statsData.isEmpty) {
+      if (statsData.length < 3) {
         state = [];
         return;
       }
 
-      final movieIds = statsData.map((e) => e['movie_id'] as int).toList();
+      final movieIds =
+          statsData.take(3).map((e) => e['movie_id'] as int).toList();
 
       final moviesData =
           await supabase.from('movies').select().inFilter('id', movieIds);
@@ -62,7 +66,8 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
           (m) => m.id == stat['movie_id'],
         );
 
-        final score = (stat['consensus_score'] as num?)?.toDouble() ?? 0.0;
+        final score =
+            (stat['consensus_score'] as num?)?.toDouble() ?? 0.0;
 
         if (movie.id != 0 && score > 0.0) {
           results.add(ResultMovie(
@@ -70,14 +75,21 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
             score: score,
           ));
         }
+
+        if (results.length == 3) break;
       }
 
-      state = results;
-    } catch (e) {
+      if (results.length == 3) {
+        state = results;
+      } else {
+        state = [];
+      }
+    } catch (_) {
       state = [];
     }
   }
 }
+
 
 final resultsProvider = NotifierProvider<ResultNotifier, List<ResultMovie>>(
   ResultNotifier.new,
