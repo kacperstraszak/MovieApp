@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/providers/group_provider.dart';
 import 'package:movie_recommendation_app/providers/result_provider.dart';
-import 'package:movie_recommendation_app/screens/home.dart';
 import 'package:movie_recommendation_app/widgets/results_view.dart';
 import 'package:movie_recommendation_app/widgets/waiting_view.dart';
 
@@ -67,10 +66,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (ctx) => const HomeScreen()),
-        (route) => false,
-      );
+      Navigator.popUntil(context, (route) => route.isFirst);
     }
   }
 
