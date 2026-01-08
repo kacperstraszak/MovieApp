@@ -1,4 +1,6 @@
-class Group {
+import 'package:equatable/equatable.dart';
+
+class Group extends Equatable {
   const Group({
     required this.id,
     required this.code,
@@ -29,7 +31,10 @@ class Group {
       'code': code,
       'admin_id': adminId,
       'is_active': isActive,
-      'lobby': status,
+      'status': status,
     };
   }
+
+  @override
+  List<Object?> get props => [id, code, adminId, isActive, status];
 }

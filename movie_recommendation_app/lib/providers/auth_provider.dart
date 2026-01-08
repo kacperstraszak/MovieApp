@@ -3,16 +3,18 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_recommendation_app/models/my_auth_state.dart';
 import 'package:movie_recommendation_app/models/user_profile.dart';
+import 'package:movie_recommendation_app/providers/supabase_client_provider.dart';
 import 'package:movie_recommendation_app/utils/constants.dart';
 import 'package:movie_recommendation_app/utils/storage_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthNotifier extends Notifier<MyAuthState> {
-  final _storageService = StorageService();
+  SupabaseClient get _supabase => ref.read(supabaseClientProvider);
+  StorageService get _storageService => ref.read(storageServiceProvider);
 
   @override
   MyAuthState build() {
-    final currentUser = supabase.auth.currentUser;
+    final currentUser = _supabase.auth.currentUser;
 
     if (currentUser != null) {
       Future.microtask(() => _loadProfile(currentUser.id));
@@ -23,7 +25,7 @@ class AuthNotifier extends Notifier<MyAuthState> {
 
   Future<void> _loadProfile(String userId) async {
     try {
-      final data = await supabase
+      final data = await _supabase
           .from(kProfilesTable)
           .select()
           .eq(kUserIdCol, userId)
@@ -43,7 +45,7 @@ class AuthNotifier extends Notifier<MyAuthState> {
   }
 
   Future<void> _checkUsernameAvailability(String username) async {
-    final data = await supabase
+    final data = await _supabase
         .from(kProfilesTable)
         .select('username')
         .eq(kUsernameCol, username)
@@ -58,7 +60,7 @@ class AuthNotifier extends Notifier<MyAuthState> {
     state = state.copyWith(isAuthenticating: true, errorMessage: null);
 
     try {
-      final response = await supabase.auth.signInWithPassword(
+      final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
@@ -88,7 +90,7 @@ class AuthNotifier extends Notifier<MyAuthState> {
 
     try {
       await _checkUsernameAvailability(username);
-      final authResponse = await supabase.auth.signUp(
+      final authResponse = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
@@ -109,7 +111,7 @@ class AuthNotifier extends Notifier<MyAuthState> {
         );
       }
 
-      await supabase.from(kProfilesTable).insert({
+      await _supabase.from(kProfilesTable).insert({
         kUserIdCol: userId,
         kUsernameCol: username.trim(),
         kEmailCol: email,
@@ -136,10 +138,14 @@ class AuthNotifier extends Notifier<MyAuthState> {
   }
 
   Future<void> signOut() async {
-    await supabase.auth.signOut();
+    await _supabase.auth.signOut();
     state = const MyAuthState(user: null);
   }
 }
+
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService();
+});
 
 final authProvider =
     NotifierProvider<AuthNotifier, MyAuthState>(AuthNotifier.new);

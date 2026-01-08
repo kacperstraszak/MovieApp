@@ -27,6 +27,7 @@ class GroupRecommendationsNotifier extends Notifier<List<Movie>> {
   }
 
   Future<void> loadGroupRecommendations() async {
+    state = [];
     final groupId = ref.read(groupProvider).currentGroup?.id;
     if (groupId == null) {
       state = [];

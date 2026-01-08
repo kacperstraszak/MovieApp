@@ -11,6 +11,7 @@ class ResultNotifier extends Notifier<List<ResultMovie>> {
   }
 
   Future<void> loadResults({int maxRetries = 3}) async {
+    state = [];
     final groupId = ref.read(groupProvider).currentGroup?.id;
 
     if (groupId == null) {
